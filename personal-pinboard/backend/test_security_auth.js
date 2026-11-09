@@ -105,6 +105,7 @@ async function runTests() {
     assert(res6.status === 201, 'Registration succeeds (201 Created)');
     assert(res6.body?.data?.user?.role === 'user', 'Privilege escalation blocked: role enforced as "user"');
     const userToken = res6.body?.data?.token;
+    const user1Id = res6.body?.data?.user?.id;
 
     // Test 7: Registration password validation (< 6 chars)
     const res7 = await request('POST', '/api/auth/register', {
@@ -210,6 +211,7 @@ async function runTests() {
       password: 'password123',
     });
     const user2Token = resUser2.body?.data?.token;
+    const user2Id = resUser2.body?.data?.user?.id;
 
     // User 2 tries to modify User 1's board
     const res18 = await request('POST', `/api/boards/${boardId}/pins`, { pin_id: 1 }, user2Token);
@@ -308,6 +310,20 @@ async function runTests() {
     assert(resStats.status === 200, 'Admin stats retrieved successfully (200 OK)');
     assert(typeof resStats.body?.data?.totalCategories === 'number', 'totalCategories is included in stats');
     assert(typeof resStats.body?.data?.totalReports === 'number', 'totalReports is included in stats');
+
+    // Teardown / Cleanup: Delete test fixtures so database remains strictly clean
+    if (boardId) {
+      const resCleanBoard = await request('DELETE', `/api/boards/${boardId}`, null, userToken);
+      assert(resCleanBoard.status === 200, 'Teardown: test board deleted cleanly');
+    }
+    if (user1Id) {
+      const resCleanUser1 = await request('DELETE', `/api/admin/users/${user1Id}`, null, adminToken);
+      assert(resCleanUser1.status === 200, 'Teardown: test user 1 deleted cleanly');
+    }
+    if (user2Id) {
+      const resCleanUser2 = await request('DELETE', `/api/admin/users/${user2Id}`, null, adminToken);
+      assert(resCleanUser2.status === 200, 'Teardown: test user 2 deleted cleanly');
+    }
 
     console.log(`\n========================================`);
     console.log(`AUDIT RESULTS: ${passed} PASSED, ${failed} FAILED`);

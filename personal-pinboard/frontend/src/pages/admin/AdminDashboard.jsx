@@ -80,20 +80,19 @@ export default function AdminDashboard() {
   const loadAllData = async (showSpinner = false) => {
     if (showSpinner) setIsRefreshing(true);
     try {
-      const [statsData, usersData, reportsData, catsData] = await Promise.all([
+      const [statsData, usersData, reportsData, catsData, pinsData] = await Promise.all([
         userService.getAdminStats(),
         userService.getAdminUsers({ limit: 12 }),
         userService.getReports(),
         categoryService.getCategories(),
+        pinService.getAllPins({ includeHidden: true }),
       ]);
 
-      const storePins = appStore.getPins() || [];
-
       setStats(statsData);
-      setUsers(usersData?.users || appStore.getUsers() || []);
-      setPins(storePins);
-      setReports(reportsData || appStore.getReports() || []);
-      setCategories(catsData || appStore.getCategories() || []);
+      setUsers(Array.isArray(usersData?.users) ? usersData.users : (Array.isArray(usersData) ? usersData : []));
+      setPins(Array.isArray(pinsData) ? pinsData : []);
+      setReports(Array.isArray(reportsData) ? reportsData : []);
+      setCategories(Array.isArray(catsData) ? catsData : []);
     } catch (err) {
       console.error('Failed to load admin dashboard data:', err);
     } finally {
@@ -198,15 +197,44 @@ export default function AdminDashboard() {
   };
 
   // Real System Stats
-  const realTotalPins = stats?.totalPins || pins.length || 10;
-  const realTotalUsers = stats?.totalUsers || users.length || 8;
-  const realActiveUsers = stats?.activeUsers || users.filter((u) => u.status === 'active' || !u.status).length || 7;
-  const realTotalBoards = stats?.totalBoards || 2;
-  const realTotalComments = stats?.totalComments || 6;
+  const realTotalPins = stats?.totalPins !== undefined && stats?.totalPins !== null ? stats.totalPins : (pins.length || 0);
+  const realTotalUsers = stats?.totalUsers !== undefined && stats?.totalUsers !== null ? stats.totalUsers : (users.length || 0);
+  const realActiveUsers = stats?.activeUsers !== undefined && stats?.activeUsers !== null ? stats.activeUsers : (users.filter((u) => u.status === 'active' || !u.status).length || 0);
+  const realTotalBoards = stats?.totalBoards !== undefined && stats?.totalBoards !== null ? stats.totalBoards : 0;
+  const realTotalComments = stats?.totalComments !== undefined && stats?.totalComments !== null ? stats.totalComments : 0;
   const pendingReports = reports.filter((r) => r.status === 'pending');
 
   // Chart datasets reflecting system scale
   const chartDatasets = useMemo(() => {
+    if (realTotalPins === 0) {
+      return {
+        '7d': [
+          { label: 'Mon', date: 'Aug 25', value: 0, subValue: 0 },
+          { label: 'Tue', date: 'Aug 26', value: 0, subValue: 0 },
+          { label: 'Wed', date: 'Aug 27', value: 0, subValue: 0 },
+          { label: 'Thu', date: 'Aug 28', value: 0, subValue: 0 },
+          { label: 'Fri', date: 'Aug 29', value: 0, subValue: 0 },
+          { label: 'Sat', date: 'Aug 30', value: 0, subValue: 0 },
+          { label: 'Sun', date: 'Aug 31', value: 0, subValue: 0 },
+        ],
+        '30d': [
+          { label: 'Aug 1', date: 'Aug 1', value: 0, subValue: 0 },
+          { label: 'Aug 5', date: 'Aug 5', value: 0, subValue: 0 },
+          { label: 'Aug 9', date: 'Aug 9', value: 0, subValue: 0 },
+          { label: 'Aug 13', date: 'Aug 13', value: 0, subValue: 0 },
+          { label: 'Aug 17', date: 'Aug 17', value: 0, subValue: 0 },
+          { label: 'Aug 21', date: 'Aug 21', value: 0, subValue: 0 },
+          { label: 'Aug 25', date: 'Aug 25', value: 0, subValue: 0 },
+          { label: 'Aug 28', date: 'Aug 28', value: 0, subValue: 0 },
+          { label: 'Aug 31', date: 'Aug 31', value: 0, subValue: 0 },
+        ],
+        '90d': [
+          { label: 'Jun', date: 'Jun 2026', value: 0, subValue: 0 },
+          { label: 'Jul', date: 'Jul 2026', value: 0, subValue: 0 },
+          { label: 'Aug', date: 'Aug 2026', value: 0, subValue: 0 },
+        ],
+      };
+    }
     const scale = Math.max(1, Math.round(realTotalPins / 10));
     return {
       '7d': [
@@ -426,7 +454,7 @@ export default function AdminDashboard() {
             {/* Growth delta */}
             <div className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-rose-400 font-bold mb-6">
               <IconArrowUpRight size={15} />
-              <span>+12.5% new inspiration this month</span>
+              <span>{realTotalPins > 0 ? '+12.5% new inspiration this month' : 'No new pins published this month'}</span>
             </div>
           </div>
 
@@ -497,7 +525,7 @@ export default function AdminDashboard() {
               </div>
             </div>
             <span className="text-xs font-bold text-slate-700 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-3 py-1 rounded-xl border border-slate-200/80 dark:border-slate-700 shadow-2xs">
-              {realTotalPins ? (realTotalComments / realTotalPins).toFixed(1) : '1.0'} avg / pin
+              {realTotalPins > 0 ? (realTotalComments / realTotalPins).toFixed(1) : '0.0'} avg / pin
             </span>
           </Link>
 
@@ -722,164 +750,176 @@ export default function AdminDashboard() {
 
           {/* TAB 1: REAL PINS LIST */}
           {activeTab === 'pins' && (
-            <div className="space-y-1.5 divide-y divide-slate-100 dark:divide-slate-800/80">
-              {filteredPins.slice(0, 6).map((pin) => {
-                const creatorName = pin.user?.full_name || pin.user?.username || 'Creator';
-                const initials = getInitials(creatorName);
-                return (
-                  <div
-                    key={pin.id}
-                    className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 p-1.5 rounded-xl transition-colors"
-                  >
-                    {/* Monogram badge + User Name & Title */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {pin.user?.avatar_url ? (
-                        <Avatar src={pin.user.avatar_url} size="sm" radius="md" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 shrink-0 select-none">
-                          {initials}
+            filteredPins.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-xs">
+                No pins published yet. Platform content is clean.
+              </div>
+            ) : (
+              <div className="space-y-1.5 divide-y divide-slate-100 dark:divide-slate-800/80">
+                {filteredPins.slice(0, 6).map((pin) => {
+                  const creatorName = pin.user?.full_name || pin.user?.username || 'Creator';
+                  const initials = getInitials(creatorName);
+                  return (
+                    <div
+                      key={pin.id}
+                      className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 p-1.5 rounded-xl transition-colors"
+                    >
+                      {/* Monogram badge + User Name & Title */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {pin.user?.avatar_url ? (
+                          <Avatar src={pin.user.avatar_url} size="sm" radius="md" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 shrink-0 select-none">
+                            {initials}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 dark:text-white truncate text-xs">
+                            {creatorName}
+                          </p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                            "{pin.title}"
+                          </p>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-900 dark:text-white truncate text-xs">
-                          {creatorName}
-                        </p>
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
-                          "{pin.title}"
-                        </p>
+                      </div>
+
+                      {/* Date */}
+                      <div className="text-slate-400 text-xs font-medium shrink-0 w-16 text-right hidden sm:block">
+                        {formatDate(pin.created_at)}
+                      </div>
+
+                      {/* Category */}
+                      <div className="font-medium text-slate-600 dark:text-slate-300 text-xs shrink-0 w-24 text-right truncate hidden sm:block">
+                        {pin.category?.name || 'Inspiration'}
+                      </div>
+
+                      {/* Status Pill */}
+                      <div className="shrink-0 w-20 text-right hidden sm:block">
+                        <span className="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold text-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
+                          Active
+                        </span>
+                      </div>
+
+                      {/* Action */}
+                      <div className="shrink-0">
+                        <Link to={`/pins/${pin.id}`}>
+                          <ActionIcon variant="subtle" color="gray" size="sm" radius="md">
+                            <IconEye size={14} className="text-slate-400 hover:text-slate-900 dark:hover:text-white" />
+                          </ActionIcon>
+                        </Link>
                       </div>
                     </div>
-
-                    {/* Date */}
-                    <div className="text-slate-400 text-xs font-medium shrink-0 w-16 text-right hidden sm:block">
-                      {formatDate(pin.created_at)}
-                    </div>
-
-                    {/* Category */}
-                    <div className="font-medium text-slate-600 dark:text-slate-300 text-xs shrink-0 w-24 text-right truncate hidden sm:block">
-                      {pin.category?.name || 'Inspiration'}
-                    </div>
-
-                    {/* Status Pill */}
-                    <div className="shrink-0 w-20 text-right hidden sm:block">
-                      <span className="inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold text-center bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        Active
-                      </span>
-                    </div>
-
-                    {/* Action */}
-                    <div className="shrink-0">
-                      <Link to={`/pins/${pin.id}`}>
-                        <ActionIcon variant="subtle" color="gray" size="sm" radius="md">
-                          <IconEye size={14} className="text-slate-400 hover:text-slate-900 dark:hover:text-white" />
-                        </ActionIcon>
-                      </Link>
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="pt-3 text-right">
-                <Link
-                  to="/admin/pins"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-rose-400 hover:underline group"
-                >
-                  <span>Manage All Pins ({pins.length})</span>
-                  <IconArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                  );
+                })}
+                <div className="pt-3 text-right">
+                  <Link
+                    to="/admin/pins"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-rose-400 hover:underline group"
+                  >
+                    <span>Manage All Pins ({pins.length})</span>
+                    <IconArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {/* TAB 2: REGISTERED MEMBERS LIST */}
           {activeTab === 'users' && (
-            <div className="space-y-1.5 divide-y divide-slate-100 dark:divide-slate-800/80">
-              {filteredUsers.slice(0, 6).map((u) => {
-                const isActive = (u.status || 'active') === 'active';
-                const displayName = u.full_name || u.username;
-                const initials = getInitials(displayName);
-                return (
-                  <div
-                    key={u.id}
-                    className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 p-1.5 rounded-xl transition-colors"
-                  >
-                    {/* User info */}
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      {u.avatar_url ? (
-                        <Avatar src={u.avatar_url} size="sm" radius="md" />
-                      ) : (
-                        <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 shrink-0 select-none">
-                          {initials}
+            filteredUsers.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 dark:text-slate-500 text-xs">
+                No members found.
+              </div>
+            ) : (
+              <div className="space-y-1.5 divide-y divide-slate-100 dark:divide-slate-800/80">
+                {filteredUsers.slice(0, 6).map((u) => {
+                  const isActive = (u.status || 'active') === 'active';
+                  const displayName = u.full_name || u.username;
+                  const initials = getInitials(displayName);
+                  return (
+                    <div
+                      key={u.id}
+                      className="pt-2.5 first:pt-0 flex items-center justify-between gap-3 text-xs hover:bg-slate-50 dark:hover:bg-slate-800/40 p-1.5 rounded-xl transition-colors"
+                    >
+                      {/* User info */}
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        {u.avatar_url ? (
+                          <Avatar src={u.avatar_url} size="sm" radius="md" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center font-bold text-xs text-slate-700 dark:text-slate-200 shrink-0 select-none">
+                            {initials}
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="font-bold text-slate-900 dark:text-white truncate text-xs">
+                            {displayName}
+                          </p>
+                          <p className="text-[11px] text-slate-400 truncate">
+                            @{u.username}
+                          </p>
                         </div>
-                      )}
-                      <div className="min-w-0">
-                        <p className="font-bold text-slate-900 dark:text-white truncate text-xs">
-                          {displayName}
-                        </p>
-                        <p className="text-[11px] text-slate-400 truncate">
-                          @{u.username}
-                        </p>
+                      </div>
+
+                      {/* Joined date */}
+                      <div className="text-slate-400 text-xs font-medium shrink-0 hidden sm:block">
+                        {formatDate(u.created_at)}
+                      </div>
+
+                      {/* Role badge */}
+                      <div className="shrink-0">
+                        <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
+                          u.role === 'admin'
+                            ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-rose-400 border border-brand-200/80 dark:border-brand-900/80'
+                            : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                        }`}>
+                          {u.role}
+                        </span>
+                      </div>
+
+                      {/* Status Pill */}
+                      <div className="shrink-0 text-right hidden sm:block">
+                        <span
+                          className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
+                            isActive
+                              ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
+                              : 'bg-rose-50 dark:bg-rose-950/60 text-brand-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900'
+                          }`}
+                        >
+                          {isActive ? 'Active' : 'Suspended'}
+                        </span>
+                      </div>
+
+                      {/* Action buttons */}
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Link to={`/profile/${u.id}`}>
+                          <ActionIcon variant="subtle" color="gray" size="sm" radius="md">
+                            <IconEye size={14} className="text-slate-400 hover:text-slate-900 dark:hover:text-white" />
+                          </ActionIcon>
+                        </Link>
+                        {u.role !== 'admin' && (
+                          <button
+                            type="button"
+                            onClick={() => handleToggleUserStatus(u)}
+                            className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer transition-all"
+                          >
+                            {isActive ? 'Suspend' : 'Activate'}
+                          </button>
+                        )}
                       </div>
                     </div>
-
-                    {/* Joined date */}
-                    <div className="text-slate-400 text-xs font-medium shrink-0 hidden sm:block">
-                      {formatDate(u.created_at)}
-                    </div>
-
-                    {/* Role badge */}
-                    <div className="shrink-0">
-                      <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-md ${
-                        u.role === 'admin'
-                          ? 'bg-brand-50 dark:bg-brand-950/60 text-brand-600 dark:text-rose-400 border border-brand-200/80 dark:border-brand-900/80'
-                          : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                      }`}>
-                        {u.role}
-                      </span>
-                    </div>
-
-                    {/* Status Pill */}
-                    <div className="shrink-0 text-right hidden sm:block">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-md text-[11px] font-bold ${
-                          isActive
-                            ? 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700'
-                            : 'bg-rose-50 dark:bg-rose-950/60 text-brand-600 dark:text-rose-400 border border-rose-200 dark:border-rose-900'
-                        }`}
-                      >
-                        {isActive ? 'Active' : 'Suspended'}
-                      </span>
-                    </div>
-
-                    {/* Action buttons */}
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Link to={`/profile/${u.id}`}>
-                        <ActionIcon variant="subtle" color="gray" size="sm" radius="md">
-                          <IconEye size={14} className="text-slate-400 hover:text-slate-900 dark:hover:text-white" />
-                        </ActionIcon>
-                      </Link>
-                      {u.role !== 'admin' && (
-                        <button
-                          type="button"
-                          onClick={() => handleToggleUserStatus(u)}
-                          className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 cursor-pointer transition-all"
-                        >
-                          {isActive ? 'Suspend' : 'Activate'}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                );
-              })}
-              <div className="pt-3 text-right">
-                <Link
-                  to="/admin/users"
-                  className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-rose-400 hover:underline group"
-                >
-                  <span>View All Members ({users.length})</span>
-                  <IconArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
-                </Link>
+                  );
+                })}
+                <div className="pt-3 text-right">
+                  <Link
+                    to="/admin/users"
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-rose-400 hover:underline group"
+                  >
+                    <span>View All Members ({users.length})</span>
+                    <IconArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
+                  </Link>
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {/* TAB 3: SAFETY REPORTS QUEUE */}
@@ -961,9 +1001,9 @@ export default function AdminDashboard() {
               <div className="space-y-3.5">
                 {categories.length > 0 ? (
                   categories.slice(0, 5).map((cat, idx) => {
-                    const count = cat.pins_count || (idx === 0 ? 4 : idx === 1 ? 3 : idx === 2 ? 2 : 1);
-                    const total = Math.max(1, realTotalPins);
-                    const pct = Math.min(100, Math.round((count / total) * 100)) || (30 - idx * 5);
+                    const count = cat.pins_count || 0;
+                    const total = realTotalPins;
+                    const pct = total > 0 ? Math.min(100, Math.round((count / total) * 100)) : 0;
                     const barColors = [
                       'bg-brand-600',
                       'bg-rose-500',

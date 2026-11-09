@@ -51,38 +51,37 @@ function notify() {
   }
 }
 
-const SEED_BLOGS_KEY = 'pinboard_seeded_landing_blogs_v7';
-if (typeof window !== 'undefined' && localStorage.getItem(SEED_BLOGS_KEY) !== 'true') {
-  localStorage.setItem(SEED_BLOGS_KEY, 'true');
-  save(KEYS.PINS, MOCK_PINS);
-  save(KEYS.CATEGORIES, MOCK_CATEGORIES);
-  save(KEYS.BOARDS, MOCK_BOARDS);
-  save(KEYS.COMMENTS, MOCK_COMMENTS);
+const PURGE_ORPHANED_DATA_KEY = 'pinboard_purged_test_activity_v10';
+if (typeof window !== 'undefined' && localStorage.getItem(PURGE_ORPHANED_DATA_KEY) !== 'true') {
+  localStorage.setItem(PURGE_ORPHANED_DATA_KEY, 'true');
+  save(KEYS.PINS, []);
+  save(KEYS.BOARDS, []);
+  save(KEYS.COMMENTS, []);
+  save(KEYS.REPORTS, []);
   save(KEYS.USERS, MOCK_USERS);
-  save(KEYS.REPORTS, MOCK_REPORTS);
+  try {
+    localStorage.removeItem('pinboard_pins_v3');
+    localStorage.removeItem('pinboard_users_v3');
+    localStorage.removeItem('pinboard_boards_v3');
+    localStorage.removeItem('pinboard_comments_v3');
+  } catch (_) {}
 }
 
 class AppStore {
   constructor() {
     const loadedUsers = load(KEYS.USERS, MOCK_USERS);
-    this.users = (loadedUsers && loadedUsers.length >= 2) ? loadedUsers : [...MOCK_USERS];
-    const loadedPins = load(KEYS.PINS, MOCK_PINS);
-    this.pins = (loadedPins && loadedPins.length > 0) ? loadedPins : [...MOCK_PINS];
-    
-    // Auto-sync or replace old ui-ux-designer-ref image with new photo
-    this.pins = this.pins.map((p) => {
-      if (p.id === 4 || p.image_url?.includes('ui-ux-designer')) {
-        const fresh = MOCK_PINS.find((m) => m.id === 4);
-        return fresh ? { ...fresh } : p;
-      }
-      return p;
-    });
+    // Sanitize users: keep only legitimate accounts, filter out tytytest1 or testtyty2.com
+    const sanitizedUsers = (Array.isArray(loadedUsers) && loadedUsers.length > 0)
+      ? loadedUsers.filter((u) => u.username !== 'tytytest1' && u.username !== 'testtyty2.com')
+      : [...MOCK_USERS];
+    this.users = sanitizedUsers.length > 0 ? sanitizedUsers : [...MOCK_USERS];
+    save(KEYS.USERS, this.users);
 
-    MOCK_PINS.forEach((mPin) => {
-      if (!this.pins.some((p) => p.id === mPin.id)) {
-        this.pins.push(mPin);
-      }
-    });
+    const loadedPins = load(KEYS.PINS, []);
+    // Sanitize pins: filter out pins created by tytytest1 or test users
+    this.pins = Array.isArray(loadedPins)
+      ? loadedPins.filter((p) => p.username !== 'tytytest1' && p.user?.username !== 'tytytest1')
+      : [];
     save(KEYS.PINS, this.pins);
 
     const loadedCats = load(KEYS.CATEGORIES, null);
@@ -91,13 +90,6 @@ class AppStore {
     this.boards = Array.isArray(loadedBoards) ? loadedBoards : [...MOCK_BOARDS];
     const loadedComments = load(KEYS.COMMENTS, null);
     this.comments = Array.isArray(loadedComments) ? loadedComments : [...MOCK_COMMENTS];
-
-    // Auto-sync any new mock comments into existing store
-    MOCK_COMMENTS.forEach((mComment) => {
-      if (!this.comments.some((c) => c.id === mComment.id)) {
-        this.comments.push(mComment);
-      }
-    });
 
     const loadedReports = load(KEYS.REPORTS, null);
     this.reports = Array.isArray(loadedReports) ? loadedReports : [...MOCK_REPORTS];
