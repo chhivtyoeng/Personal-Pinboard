@@ -7,13 +7,15 @@ export const Comment = {
       const params = [];
       let idx = 1;
 
-      if (filter.pin_id) {
+      const targetPinId = filter.pin_id || filter.pinId;
+      if (targetPinId && targetPinId !== 'null' && targetPinId !== 'undefined' && !isNaN(Number(targetPinId))) {
         sql += ` AND pin_id = $${idx++}`;
-        params.push(Number(filter.pin_id));
+        params.push(Number(targetPinId));
       }
-      if (filter.user_id) {
+      const targetUserId = filter.user_id || filter.userId;
+      if (targetUserId && targetUserId !== 'null' && targetUserId !== 'undefined' && !isNaN(Number(targetUserId))) {
         sql += ` AND user_id = $${idx++}`;
-        params.push(Number(filter.user_id));
+        params.push(Number(targetUserId));
       }
       sql += ' ORDER BY created_at DESC';
       const res = await pool.query(sql, params);

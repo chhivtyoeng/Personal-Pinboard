@@ -8,7 +8,7 @@ export const Board = {
       let idx = 1;
 
       const targetUserId = filter.user_id || filter.userId;
-      if (targetUserId) {
+      if (targetUserId && targetUserId !== 'null' && targetUserId !== 'undefined' && !isNaN(Number(targetUserId))) {
         sql += ` AND user_id = $${idx++}`;
         params.push(Number(targetUserId));
       }

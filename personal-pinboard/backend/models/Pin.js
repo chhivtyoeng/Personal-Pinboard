@@ -16,17 +16,17 @@ export const Pin = {
         paramIdx++;
       }
       const catId = params.categoryId || params.category_id;
-      if (catId) {
+      if (catId && catId !== 'null' && catId !== 'undefined' && !isNaN(Number(catId))) {
         sql += ` AND category_id = $${paramIdx++}`;
         sqlParams.push(Number(catId));
       }
       const bId = params.boardId || params.board_id || params.board;
-      if (bId) {
+      if (bId && bId !== 'null' && bId !== 'undefined' && !isNaN(Number(bId))) {
         sql += ` AND board_id = $${paramIdx++}`;
         sqlParams.push(Number(bId));
       }
       const uId = params.userId || params.user_id;
-      if (uId) {
+      if (uId && uId !== 'null' && uId !== 'undefined' && !isNaN(Number(uId))) {
         sql += ` AND user_id = $${paramIdx++}`;
         sqlParams.push(Number(uId));
       }
@@ -38,6 +38,13 @@ export const Pin = {
         sql += ' AND is_private = true';
       } else if (params.privacy === 'public') {
         sql += ' AND is_private = false';
+      }
+
+      const likedBy = params.likedByUserId || params.liked_by_user_id;
+      if (likedBy && likedBy !== 'null' && likedBy !== 'undefined') {
+        sql += ` AND (liked_by @> $${paramIdx++}::jsonb OR liked_by @> $${paramIdx++}::jsonb)`;
+        sqlParams.push(JSON.stringify([Number(likedBy)]));
+        sqlParams.push(JSON.stringify([String(likedBy)]));
       }
 
       if (params.sort === 'popular') {
@@ -83,11 +90,11 @@ export const Pin = {
       result = result.filter((p) => !p.is_private);
     }
     const fallbackCatId = params.categoryId || params.category_id;
-    if (fallbackCatId) {
+    if (fallbackCatId && fallbackCatId !== 'null' && fallbackCatId !== 'undefined') {
       result = result.filter((p) => String(p.category_id) === String(fallbackCatId));
     }
     const fallbackBId = params.boardId || params.board_id || params.board;
-    if (fallbackBId) {
+    if (fallbackBId && fallbackBId !== 'null' && fallbackBId !== 'undefined') {
       result = result.filter((p) => String(p.board_id) === String(fallbackBId));
     }
     if (params.tag) {
@@ -95,7 +102,7 @@ export const Pin = {
       result = result.filter((p) => p.tags && p.tags.some((t) => t.toLowerCase() === tagLower));
     }
     const fallbackUId = params.userId || params.user_id;
-    if (fallbackUId) {
+    if (fallbackUId && fallbackUId !== 'null' && fallbackUId !== 'undefined') {
       result = result.filter((p) => String(p.user_id) === String(fallbackUId));
     }
     if (params.likedByUserId) {

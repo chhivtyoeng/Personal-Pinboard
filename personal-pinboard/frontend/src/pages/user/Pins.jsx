@@ -61,7 +61,7 @@ export default function Pins() {
         } else if (sortBy === 'views') {
           sorted.sort((a, b) => (b.views_count || 0) - (a.views_count || 0));
         } else {
-          sorted.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+          sorted.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
         }
 
         setPins(sorted);

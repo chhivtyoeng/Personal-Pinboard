@@ -25,15 +25,19 @@ export default function PinDetails() {
         }
         setPin(pinData);
 
-        // Load related pins in same category
-        try {
-          const allPins = await pinService.getAllPins({
-            categoryId: pinData.category_id,
-          });
-          const safePins = Array.isArray(allPins) ? allPins : (allPins?.pins || []);
-          setRelatedPins(safePins.filter((p) => String(p.id) !== String(id)));
-        } catch (catErr) {
-          console.warn('Failed to fetch related pins:', catErr);
+        // Load related pins in same category if category exists
+        if (pinData.category_id) {
+          try {
+            const allPins = await pinService.getAllPins({
+              categoryId: pinData.category_id,
+            });
+            const safePins = Array.isArray(allPins) ? allPins : (allPins?.pins || []);
+            setRelatedPins(safePins.filter((p) => String(p.id) !== String(id)));
+          } catch (catErr) {
+            console.warn('Failed to fetch related pins:', catErr);
+            setRelatedPins([]);
+          }
+        } else {
           setRelatedPins([]);
         }
       } catch (err) {
