@@ -46,7 +46,7 @@ export const authService = {
       email,
       full_name: fullName,
       role: 'user',
-      avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatar_url: data.avatar_url || null,
       created_at: new Date().toISOString(),
     };
 
@@ -126,9 +126,7 @@ export const authService = {
       avatar_url:
         matchedStored?.avatar_url ||
         matchedMock?.avatar_url ||
-        (isAdmin
-          ? 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'
-          : 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'),
+        null,
       bio:
         matchedStored?.bio ||
         matchedMock?.bio ||
@@ -178,7 +176,7 @@ export const authService = {
 
     const email = (typeof profile === 'object' ? profile.email : profile || '').toLowerCase().trim();
     const name = (typeof profile === 'object' ? profile.name : '') || (email ? email.split('@')[0] : 'Google User');
-    const avatarUrl = (typeof profile === 'object' ? profile.avatar_url : null) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+    const avatarUrl = (typeof profile === 'object' ? profile.avatar_url : null) || null;
     const username = email ? email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : 'google_user';
 
     const storedUsers = getStoredUsers();
@@ -229,7 +227,7 @@ export const authService = {
       email: cleanEmail,
       full_name: existing?.full_name || name,
       role: existing?.role || 'user',
-      avatar_url: existing?.avatar_url || 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+      avatar_url: existing?.avatar_url || null,
       auth_provider: 'email_otp',
       created_at: existing?.created_at || new Date().toISOString(),
     };

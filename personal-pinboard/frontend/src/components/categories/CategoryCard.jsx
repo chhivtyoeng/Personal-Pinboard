@@ -66,13 +66,23 @@ export default function CategoryCard({ category }) {
               <div className="flex -space-x-2 overflow-hidden py-0.5">
                 {members.length > 0 ? (
                   members.slice(0, 5).map((m, idx) => (
-                    <img
-                      key={m.id || idx}
-                      src={m.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                      alt={m.username || 'Member'}
-                      title={m.full_name || `@${m.username}`}
-                      className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 object-cover"
-                    />
+                    m.avatar_url ? (
+                      <img
+                        key={m.id || idx}
+                        src={m.avatar_url}
+                        alt={m.username || 'Member'}
+                        title={m.full_name || `@${m.username}`}
+                        className="inline-block h-6 w-6 rounded-full ring-2 ring-slate-950 object-cover"
+                      />
+                    ) : (
+                      <div
+                        key={m.id || idx}
+                        title={m.full_name || `@${m.username}`}
+                        className="inline-flex h-6 w-6 rounded-full ring-2 ring-slate-950 bg-brand-600 text-white items-center justify-center text-[10px] font-bold"
+                      >
+                        {(m.full_name || m.username || 'U').charAt(0).toUpperCase()}
+                      </div>
+                    )
                   ))
                 ) : (
                   <div className="w-6 h-6 rounded-full bg-rose-500/30 text-rose-200 flex items-center justify-center text-[10px] font-bold ring-2 ring-slate-950">

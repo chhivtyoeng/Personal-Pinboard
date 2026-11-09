@@ -1,5 +1,6 @@
 import Board from '../models/Board.js';
 import Pin from '../models/Pin.js';
+import User from '../models/User.js';
 
 // @desc    Get all boards (or filter by query)
 // @route   GET /api/boards

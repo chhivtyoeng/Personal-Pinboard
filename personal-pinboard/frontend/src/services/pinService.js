@@ -97,7 +97,7 @@ export const pinService = {
       user_id: currentUser?.id || 2,
       username: currentUser?.username || 'explorer',
       author_name: currentUser?.full_name || 'Pinboard Explorer',
-      author_avatar: currentUser?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      author_avatar: currentUser?.avatar_url || null,
       title: data.title,
       description: data.description || '',
       image_url: data.image_url,
@@ -199,7 +199,7 @@ export const pinService = {
       user_id: user?.id || 2,
       username: user?.username || 'explorer',
       user_name: user?.full_name || 'Pinboard Explorer',
-      user_avatar: user?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      user_avatar: user?.avatar_url || null,
       content,
       rating,
     });

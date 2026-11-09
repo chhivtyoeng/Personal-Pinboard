@@ -99,7 +99,7 @@ export const User = {
         data.email.toLowerCase(),
         hashedPassword,
         data.full_name || data.username,
-        data.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        data.avatar_url || null,
         data.bio || '',
         data.role || 'user',
         data.status || 'active',
@@ -118,7 +118,7 @@ export const User = {
       email: data.email.toLowerCase(),
       password: hashedPassword,
       full_name: data.full_name || data.username,
-      avatar_url: data.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+      avatar_url: data.avatar_url || null,
       bio: data.bio || '',
       role: data.role || 'user',
       status: data.status || 'active',
@@ -161,6 +161,9 @@ export const User = {
 
   async findByIdAndDelete(id) {
     if (isPostgresConnected && pool) {
+      await pool.query('DELETE FROM pins WHERE user_id = $1', [Number(id) || id]);
+      await pool.query('DELETE FROM boards WHERE user_id = $1', [Number(id) || id]);
+      await pool.query('DELETE FROM comments WHERE user_id = $1', [Number(id) || id]);
       const res = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [Number(id) || id]);
       return res.rows[0] || null;
     }
@@ -169,6 +172,9 @@ export const User = {
     const index = db.users.findIndex((u) => String(u.id) === String(id));
     if (index === -1) return null;
     const deleted = db.users.splice(index, 1)[0];
+    db.pins = db.pins.filter((p) => String(p.user_id) !== String(id));
+    db.boards = db.boards.filter((b) => String(b.user_id) !== String(id));
+    db.comments = db.comments.filter((c) => String(c.user_id) !== String(id));
     saveLocalDb();
     return deleted;
   },

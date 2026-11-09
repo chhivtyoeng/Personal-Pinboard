@@ -405,7 +405,7 @@ export const loginWithGoogle = async (req, res, next) => {
         email: cleanEmail,
         password: randomPassword, // Securely hashed by User.create
         full_name: full_name || name || username,
-        avatar_url: avatar_url || picture || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+        avatar_url: avatar_url || picture || null,
         auth_provider: 'google',
         role: 'user', // Enforce 'user' role
         status: 'active',
@@ -560,7 +560,7 @@ export const loginWithOtp = async (req, res, next) => {
         email: cleanEmail,
         password: randomPassword,
         full_name: (fullName || full_name || username).trim(),
-        avatar_url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+        avatar_url: null,
         auth_provider: 'email_otp',
         role: 'user', // Enforce 'user' role
         status: 'active',

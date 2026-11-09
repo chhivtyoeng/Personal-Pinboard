@@ -41,14 +41,14 @@ export default function Settings() {
 
   const [fullName, setFullName] = useState(user?.full_name || 'Pinboard User');
   const [bio, setBio] = useState(user?.bio || '');
-  const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150');
+  const [avatarUrl, setAvatarUrl] = useState(user?.avatar_url || '');
   
   // Sync state if user changes
   useEffect(() => {
     if (user) {
       if (user.full_name) setFullName(user.full_name);
       if (user.bio) setBio(user.bio);
-      if (user.avatar_url) setAvatarUrl(user.avatar_url);
+      setAvatarUrl(user.avatar_url || '');
     }
   }, [user]);
 

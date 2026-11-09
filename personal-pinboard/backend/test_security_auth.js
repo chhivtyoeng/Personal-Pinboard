@@ -3,7 +3,7 @@ import app from './server.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
-const PORT = 5099;
+const PORT = process.env.PORT || 5000;
 let server;
 
 function request(method, path, body = null, token = null) {
@@ -260,11 +260,10 @@ async function runTests() {
     console.error('Fatal error during testing:', err);
     failed++;
   } finally {
-    if (server) server.close();
     process.exit(failed > 0 ? 1 : 0);
   }
 }
 
-server = app.listen(PORT, () => {
+setTimeout(() => {
   runTests();
-});
+}, 600);

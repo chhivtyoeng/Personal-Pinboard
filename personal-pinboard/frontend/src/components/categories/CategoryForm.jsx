@@ -273,11 +273,17 @@ export default function CategoryForm({
                         }`}
                       >
                         <div className="flex items-center gap-2.5 min-w-0">
-                          <img
-                            src={friend.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
-                            alt={friend.username}
-                            className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
-                          />
+                          {friend.avatar_url ? (
+                            <img
+                              src={friend.avatar_url}
+                              alt={friend.username}
+                              className="w-7 h-7 rounded-full object-cover ring-1 ring-slate-200 dark:ring-slate-700 shrink-0"
+                            />
+                          ) : (
+                            <div className="w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-xs font-bold ring-1 ring-slate-200 dark:ring-slate-700 shrink-0">
+                              {(friend.full_name || friend.username || 'U').charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div className="min-w-0">
                             <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
                               {friend.full_name || friend.username}

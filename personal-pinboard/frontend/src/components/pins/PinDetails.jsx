@@ -210,7 +210,7 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
     pin.author_avatar ||
     pin.user?.avatar_url ||
     pin.user_data?.avatar_url ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+    null;
 
   return (
     <div className={`max-w-5xl mx-auto space-y-6 ${isModal ? 'p-1 sm:p-2 pb-16' : 'pb-16'}`}>
@@ -545,11 +545,13 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
           <form onSubmit={handleAddComment} className="mb-8 bg-slate-50 dark:bg-slate-800/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-800">
             <div className="flex items-start gap-3">
               <Avatar
-                src={user?.avatar_url || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150'}
+                src={user?.avatar_url || undefined}
                 alt={user?.full_name || 'User'}
                 radius="xl"
                 size="md"
-              />
+              >
+                {(user?.full_name || user?.username || 'U').charAt(0).toUpperCase()}
+              </Avatar>
               <div className="flex-1 space-y-3">
                 <Textarea
                   placeholder="Share your thoughts or resource notes on this pin..."
@@ -607,7 +609,7 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
                 comment.user_avatar ||
                 comment.user?.avatar_url ||
                 comment.user_data?.avatar_url ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+                null;
               const commentUserName =
                 comment.user_name ||
                 comment.user?.full_name ||
@@ -624,11 +626,13 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <Avatar
-                        src={commentUserAvatar}
+                        src={commentUserAvatar || undefined}
                         alt={commentUserName}
                         radius="xl"
                         size="sm"
-                      />
+                      >
+                        {(commentUserName || 'U').charAt(0).toUpperCase()}
+                      </Avatar>
                       <div>
                         <span className="text-xs font-bold text-slate-900 dark:text-white">
                           {commentUserName}

@@ -759,11 +759,12 @@ export default function Header({ onToggleSidebar }) {
                     className="w-9 h-9 sm:w-10 sm:h-10 rounded-full ring-2 ring-slate-200/90 dark:ring-slate-700 hover:ring-brand-500/50 dark:hover:ring-brand-400/50 focus:ring-brand-500 transition-all cursor-pointer active:scale-90 flex items-center justify-center shrink-0 overflow-hidden bg-slate-100 dark:bg-slate-800 shadow-2xs"
                   >
                     <Avatar
-                      src={user?.avatar_url}
+                      src={user?.avatar_url || undefined}
                       alt={user?.full_name || 'User'}
                       radius="xl"
                       size={36}
-                      className="w-full h-full object-cover"
+                      color="brandRed"
+                      className="w-full h-full object-cover font-bold"
                     >
                       {(user?.full_name || user?.username || 'U').charAt(0).toUpperCase()}
                     </Avatar>

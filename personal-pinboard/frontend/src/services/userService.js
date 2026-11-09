@@ -20,7 +20,7 @@ export const userService = {
       full_name: 'Pinboard User',
       email: 'user@pinboard.dev',
       role: 'user',
-      avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      avatar_url: null,
     };
     const userBoards = appStore.getBoards(user.id);
     const userPins = appStore.getPins().filter(p => p.user_id === user.id);

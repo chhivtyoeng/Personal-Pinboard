@@ -78,7 +78,7 @@ export const updateProfile = async (req, res, next) => {
       updates.bio = String(bio).slice(0, 500);
     }
     if (avatar_url !== undefined) {
-      updates.avatar_url = String(avatar_url).trim();
+      updates.avatar_url = avatar_url && String(avatar_url).trim() !== '' ? String(avatar_url).trim() : null;
     }
 
     if (username !== undefined) {

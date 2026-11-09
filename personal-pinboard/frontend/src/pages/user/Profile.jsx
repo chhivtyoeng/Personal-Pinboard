@@ -330,14 +330,17 @@ export default function Profile() {
             onClick={isOwner ? () => setEditModalOpen(true) : undefined}
             title={isOwner ? 'Click to change photo' : undefined}
           >
-            <img
-              src={
-                profile.avatar_url ||
-                'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80'
-              }
-              alt={fullName}
-              className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-3 ring-slate-100 dark:ring-slate-800 shadow-sm transition-transform duration-200 group-hover:scale-105"
-            />
+            {profile.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                alt={fullName}
+                className="w-16 h-16 sm:w-20 sm:h-20 rounded-full object-cover ring-3 ring-slate-100 dark:ring-slate-800 shadow-sm transition-transform duration-200 group-hover:scale-105"
+              />
+            ) : (
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-brand-600 text-white flex items-center justify-center text-xl sm:text-2xl font-black ring-3 ring-slate-100 dark:ring-slate-800 shadow-sm transition-transform duration-200 group-hover:scale-105">
+                {(fullName || 'U').charAt(0).toUpperCase()}
+              </div>
+            )}
             {isOwner && (
               <div
                 className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-brand-600 hover:bg-brand-700 text-white flex items-center justify-center shadow-md border-2 border-white dark:border-slate-900 transition-all cursor-pointer"

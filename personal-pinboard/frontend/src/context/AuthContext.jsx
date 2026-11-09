@@ -10,7 +10,7 @@ const GUEST_USER = {
   full_name: 'Pinboard Explorer',
   email: 'explorer@pinboard.dev',
   role: 'user',
-  avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+  avatar_url: null,
 };
 
 const GOOGLE_USER = {
@@ -19,7 +19,7 @@ const GOOGLE_USER = {
   full_name: 'Chhiv Ty',
   email: 'chhiv@pinboard.dev',
   role: 'user',
-  avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+  avatar_url: null,
 };
 
 export const AuthProvider = ({ children }) => {

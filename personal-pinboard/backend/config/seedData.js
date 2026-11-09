@@ -11,7 +11,7 @@ export const SEED_USERS = [
     full_name: 'Administrator',
     bio: 'Platform Administrator',
     role: 'admin',
-    avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
+    avatar_url: null,
     pins_count: 0,
     boards_count: 0,
     status: 'active',
