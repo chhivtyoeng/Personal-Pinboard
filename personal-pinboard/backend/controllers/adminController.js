@@ -102,7 +102,7 @@ export const updateUserRole = async (req, res, next) => {
       });
     }
 
-    const updated = await User.findByIdAndUpdate(userId, { role }, { new: true });
+    const updated = await User.findByIdAndUpdate(userId, { role });
     if (!updated) {
       return res.status(404).json({
         success: false,
@@ -142,7 +142,7 @@ export const updateUserStatus = async (req, res, next) => {
       });
     }
 
-    const updated = await User.findByIdAndUpdate(userId, { status }, { new: true });
+    const updated = await User.findByIdAndUpdate(userId, { status });
     if (!updated) {
       return res.status(404).json({
         success: false,

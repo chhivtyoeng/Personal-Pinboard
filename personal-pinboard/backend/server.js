@@ -5,7 +5,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 
-import connectDB from './config/db.js';
+import connectDB, { closeDB } from './config/db.js';
 import apiRoutes from './routes/index.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 
@@ -89,9 +89,61 @@ const server = app.listen(PORT, () => {
   console.log(`===============================================`);
 });
 
-// Handle unhandled promise rejections
-process.on('unhandledRejection', (err) => {
-  console.error(`Unhandled Rejection: ${err.message}`);
+// ==========================================
+// Graceful Shutdown & Process Signal Handling
+// ==========================================
+let isShuttingDown = false;
+
+const gracefulShutdown = async (signal) => {
+  if (isShuttingDown) return;
+  isShuttingDown = true;
+
+  console.log(`\n🛑 [SHUTDOWN] Received signal: ${signal}. Initiating graceful shutdown...`);
+
+  // Force close after 10s if connections refuse to drain
+  const forceExitTimeout = setTimeout(() => {
+    console.error('⚠️ [SHUTDOWN] Forcefully shutting down because cleanup took too long (10s timeout).');
+    process.exit(1);
+  }, 10000);
+  forceExitTimeout.unref();
+
+  try {
+    // 1. Stop receiving new HTTP requests and finish active requests
+    await new Promise((resolve) => {
+      server.close((err) => {
+        if (err) {
+          console.error('❌ [SHUTDOWN] Error closing HTTP server:', err);
+        } else {
+          console.log('✅ [SHUTDOWN] HTTP server closed gracefully (all active connections finished).');
+        }
+        resolve();
+      });
+    });
+
+    // 2. Cleanly close Database connection pool
+    await closeDB();
+
+    console.log('✨ [SHUTDOWN] Graceful shutdown completed cleanly. Exiting.');
+    process.exit(0);
+  } catch (error) {
+    console.error('❌ [SHUTDOWN] Error during shutdown process:', error);
+    process.exit(1);
+  }
+};
+
+// Docker / Kubernetes / Process Termination Signals
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+// Uncaught Exceptions & Unhandled Rejections
+process.on('unhandledRejection', async (err) => {
+  console.error(`💥 [ERROR] Unhandled Rejection:`, err);
+  await gracefulShutdown('unhandledRejection');
+});
+
+process.on('uncaughtException', async (err) => {
+  console.error(`💥 [ERROR] Uncaught Exception:`, err);
+  await gracefulShutdown('uncaughtException');
 });
 
 export default app;

@@ -125,7 +125,7 @@ export const updateCategory = async (req, res, next) => {
       updates.members = members;
     }
 
-    const updated = await Category.findByIdAndUpdate(req.params.id, updates, { new: true });
+    const updated = await Category.findByIdAndUpdate(req.params.id, updates);
 
     res.json({
       success: true,
@@ -189,7 +189,7 @@ export const addMember = async (req, res, next) => {
       members.push(memberData);
     }
 
-    const updated = await Category.findByIdAndUpdate(id, { members }, { new: true });
+    const updated = await Category.findByIdAndUpdate(id, { members });
 
     res.json({
       success: true,
@@ -218,7 +218,7 @@ export const removeMember = async (req, res, next) => {
     let members = Array.isArray(category.members) ? [...category.members] : [];
     members = members.filter((m) => String(m.id) !== String(memberId));
 
-    const updated = await Category.findByIdAndUpdate(id, { members }, { new: true });
+    const updated = await Category.findByIdAndUpdate(id, { members });
 
     res.json({
       success: true,

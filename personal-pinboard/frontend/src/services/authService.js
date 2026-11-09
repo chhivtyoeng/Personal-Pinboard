@@ -75,7 +75,9 @@ export const authService = {
     // Fallback logic
     const rawInput = (credentials.email || credentials.username || '').trim();
     const normalizedInput = rawInput.toLowerCase();
-    const isAdmin = normalizedInput.includes('admin');
+    // Only grant admin role if the input exactly matches a known admin identifier,
+    // not just any string that contains the word 'admin' (prevents privilege escalation)
+    const isAdmin = normalizedInput === 'admin' || normalizedInput === 'admin@pinboard.dev';
 
     const storedUsers = getStoredUsers();
     const matchedStored = storedUsers.find(

@@ -64,8 +64,8 @@ export default function AppRoutes() {
         }
       >
         <Route path="/pins" element={<Pins />} />
-        <Route path="/pins/:id" element={<PinDetails />} />
         <Route path="/pins/create" element={<CreatePin />} />
+        <Route path="/pins/:id" element={<PinDetails />} />
         <Route path="/pins/edit/:id" element={<EditPin />} />
         <Route path="/pins/:id/edit" element={<EditPin />} />
         <Route path="/dashboard" element={<Dashboard />} />

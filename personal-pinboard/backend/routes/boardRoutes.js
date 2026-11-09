@@ -25,7 +25,6 @@ router.route('/:id')
   .delete(protect, deleteBoard);
 
 router.post('/:boardId/pins', protect, savePinToBoard);
-router.post('/:id/pins', protect, savePinToBoard);
 router.delete('/:boardId/pins/:pinId', protect, removePinFromBoard);
 
 export default router;

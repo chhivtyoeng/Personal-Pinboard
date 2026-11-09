@@ -280,33 +280,95 @@ const initPostgresTables = async (client) => {
   }
 };
 
-export const connectDB = async () => {
+export const connectDB = async (maxRetries = 5, initialDelay = 2000) => {
   initLocalDb();
 
   const connectionString =
     process.env.DATABASE_URL ||
     `postgresql://${process.env.PGUSER || 'postgres'}:${process.env.PGPASSWORD || 'postgres'}@${process.env.PGHOST || 'localhost'}:${process.env.PGPORT || 5432}/${process.env.PGDATABASE || 'personal_pinboard'}`;
 
-  try {
-    console.log(`[DB] Attempting connection to PostgreSQL...`);
-    pool = new Pool({
-      connectionString,
-      connectionTimeoutMillis: 3000,
-      ssl: process.env.DATABASE_URL?.includes('sslmode=require') || process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
-    });
+  let attempt = 0;
+  let delay = initialDelay;
 
-    const client = await pool.connect();
-    const testResult = await client.query('SELECT NOW()');
-    console.log(`🐘 [DB] PostgreSQL Connected Successfully! (${testResult.rows[0].now})`);
-    isPostgresConnected = true;
+  while (attempt < maxRetries) {
+    attempt++;
+    try {
+      console.log(`[DB] Attempting connection to PostgreSQL (Attempt ${attempt}/${maxRetries})...`);
+      pool = new Pool({
+        connectionString,
+        connectionTimeoutMillis: 4000,
+        ssl: process.env.DATABASE_URL?.includes('sslmode=require') || process.env.PGSSL === 'true' ? { rejectUnauthorized: false } : false,
+      });
 
-    await initPostgresTables(client);
-    client.release();
-  } catch (err) {
-    isPostgresConnected = false;
-    console.warn(`⚠️  [DB] PostgreSQL not detected or connection refused (${err.message}).`);
-    console.log('⚡ [DB] Operating seamlessly with local persistent JSON database engine.');
+      const client = await pool.connect();
+      const testResult = await client.query('SELECT NOW()');
+      console.log(`🐘 [DB] PostgreSQL Connected Successfully! (${testResult.rows[0].now})`);
+      isPostgresConnected = true;
+
+      await initPostgresTables(client);
+      client.release();
+      return; // Connection and initialization succeeded
+    } catch (err) {
+      console.warn(`⚠️  [DB] Connection attempt ${attempt} failed: ${err.message}`);
+      if (pool) {
+        try {
+          await pool.end();
+        } catch (_) {}
+        pool = null;
+      }
+
+      if (attempt < maxRetries) {
+        console.log(`⏳ [DB] Retrying connection in ${delay / 1000}s...`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        delay = Math.min(delay * 1.5, 10000);
+      }
+    }
   }
+
+  isPostgresConnected = false;
+  console.warn(`⚠️  [DB] All ${maxRetries} PostgreSQL connection attempts failed.`);
+  console.log('⚡ [DB] Operating seamlessly with local persistent JSON database engine.');
+};
+
+export const closeDB = async () => {
+  if (pool) {
+    try {
+      console.log('🛑 [DB] Closing PostgreSQL connection pool...');
+      await pool.end();
+      isPostgresConnected = false;
+      pool = null;
+      console.log('✅ [DB] PostgreSQL pool closed cleanly.');
+    } catch (err) {
+      console.error('❌ [DB] Error while closing PostgreSQL pool:', err);
+    }
+  }
+};
+
+export const checkDBHealth = async () => {
+  if (isPostgresConnected && pool) {
+    try {
+      const start = Date.now();
+      await pool.query('SELECT 1');
+      const latency = Date.now() - start;
+      return {
+        status: 'healthy',
+        type: 'postgresql',
+        latency: `${latency}ms`,
+      };
+    } catch (err) {
+      return {
+        status: 'degraded',
+        type: 'postgresql_error',
+        message: err.message,
+      };
+    }
+  }
+
+  return {
+    status: 'healthy',
+    type: 'local_json',
+    file: DB_FILE,
+  };
 };
 
 export const query = (text, params) => {

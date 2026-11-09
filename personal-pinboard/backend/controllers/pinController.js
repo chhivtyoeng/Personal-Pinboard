@@ -282,7 +282,7 @@ export const updatePin = async (req, res, next) => {
       updates.is_private = Boolean(is_private);
     }
 
-    const updated = await Pin.findByIdAndUpdate(req.params.id, updates, { new: true });
+    const updated = await Pin.findByIdAndUpdate(req.params.id, updates);
 
     res.json({
       success: true,
@@ -366,7 +366,6 @@ export const toggleLike = async (req, res, next) => {
       {
         liked_by: likedBy,
         likes_count: likesCount,
-        is_liked: !isAlreadyLiked,
       },
       { new: true }
     );
@@ -560,8 +559,7 @@ export const updateComment = async (req, res, next) => {
 
     const updated = await Comment.findByIdAndUpdate(
       req.params.commentId,
-      { content: content || text },
-      { new: true }
+      { content: content || text }
     );
 
     res.json({

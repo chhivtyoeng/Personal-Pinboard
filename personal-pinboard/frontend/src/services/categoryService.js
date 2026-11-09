@@ -25,7 +25,7 @@ export const categoryService = {
       // Graceful fallback to appStore
     }
 
-    return appStore.getCategories().find(c => c.id === Number(id)) || appStore.getCategories()[0];
+    return appStore.getCategoryById(id);
   },
 
   async createCategory(data) {

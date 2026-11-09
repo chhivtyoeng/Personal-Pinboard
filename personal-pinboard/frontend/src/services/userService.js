@@ -14,11 +14,11 @@ export const userService = {
     }
 
     const users = appStore.getUsers();
-    const user = users.find(u => u.id === Number(userId)) || users[1] || {
+    const user = appStore.getUserById(userId) || users.find(u => String(u.id) === String(userId)) || users[1] || {
       id: 2,
       username: 'user',
       full_name: 'Pinboard User',
-      email: 'chhivtyy16@gmail.com',
+      email: 'user@pinboard.dev',
       role: 'user',
       avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
     };

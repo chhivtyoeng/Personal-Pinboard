@@ -185,7 +185,7 @@ export const updateBoard = async (req, res, next) => {
       updates.is_private = Boolean(is_private);
     }
 
-    const updated = await Board.findByIdAndUpdate(req.params.id, updates, { new: true });
+    const updated = await Board.findByIdAndUpdate(req.params.id, updates);
 
     res.json({
       success: true,

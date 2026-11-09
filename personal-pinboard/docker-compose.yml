@@ -1,0 +1,78 @@
+services:
+  # ========================================================
+  # Database Service: PostgreSQL 16
+  # ========================================================
+  postgres_db:
+    image: postgres:16-alpine
+    container_name: pinboard_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-personal_pinboard}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # Data Persistence: Database records survive container restarts & removals
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      # Checks whether PostgreSQL is ready to accept connections
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-personal_pinboard}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - pinboard_network
+
+  # ========================================================
+  # Backend API Service: Express.js
+  # ========================================================
+  backend_api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: pinboard_backend
+    restart: unless-stopped
+    # Gives the backend 15 seconds to drain requests before Docker forces SIGKILL
+    stop_grace_period: 15s
+    depends_on:
+      postgres_db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      PGHOST: postgres_db
+      PGPORT: 5432
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-personal_pinboard}
+      JWT_SECRET: ${JWT_SECRET:-pinboard_change_this_secret_in_production_2026}
+      CLIENT_URL: ${CLIENT_URL:-http://localhost:5173}
+    ports:
+      - "5000:5000"
+    volumes:
+      # Data Persistence: Uploaded user avatars and pins survive rebuilds
+      - uploads_data:/app/uploads
+      # Fallback database storage persistence
+      - db_fallback_data:/app/data
+    networks:
+      - pinboard_network
+
+# ==========================================================
+# Named Volumes for Persistent Storage
+# ==========================================================
+volumes:
+  postgres_data:
+    driver: local
+  uploads_data:
+    driver: local
+  db_fallback_data:
+    driver: local
+
+# ==========================================================
+# Isolated Bridge Network
+# ==========================================================
+networks:
+  pinboard_network:
+    driver: bridge

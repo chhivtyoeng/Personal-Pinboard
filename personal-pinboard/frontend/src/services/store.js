@@ -191,18 +191,18 @@ class AppStore {
   }
 
   deletePin(id) {
-    const pinToDelete = this.pins.find(p => p.id === Number(id));
-    this.pins = this.pins.filter(p => p.id !== Number(id));
-    this.comments = this.comments.filter(c => c.pin_id !== Number(id));
-    this.reports = this.reports.filter(r => r.pin_id !== Number(id));
+    const pinToDelete = this.pins.find(p => String(p.id) === String(id));
+    this.pins = this.pins.filter(p => String(p.id) !== String(id));
+    this.comments = this.comments.filter(c => String(c.pin_id) !== String(id));
+    this.reports = this.reports.filter(r => String(r.pin_id) !== String(id));
     save(KEYS.PINS, this.pins);
     save(KEYS.COMMENTS, this.comments);
     save(KEYS.REPORTS, this.reports);
 
     if (pinToDelete && pinToDelete.board_id) {
-      const boardPins = this.pins.filter(p => p.board_id === Number(pinToDelete.board_id));
+      const boardPins = this.pins.filter(p => String(p.board_id) === String(pinToDelete.board_id));
       this.boards = this.boards.map(b => {
-        if (b.id === Number(pinToDelete.board_id)) {
+        if (String(b.id) === String(pinToDelete.board_id)) {
           return {
             ...b,
             pins_count: boardPins.length,
@@ -214,21 +214,42 @@ class AppStore {
       save(KEYS.BOARDS, this.boards);
     }
 
+    if (pinToDelete && pinToDelete.category_id) {
+      this.categories = this.categories.map(c => {
+        if (String(c.id) === String(pinToDelete.category_id)) {
+          return {
+            ...c,
+            pins_count: Math.max(0, (c.pins_count || 1) - 1),
+          };
+        }
+        return c;
+      });
+      save(KEYS.CATEGORIES, this.categories);
+    }
+
     notify();
     return true;
   }
 
-  toggleLike(pinId) {
+  toggleLike(pinId, userId = 2) {
     let likedState = false;
     let nextCount = 0;
+    const uid = Number(userId) || 2;
     this.pins = this.pins.map(p => {
-      if (p.id === Number(pinId)) {
+      if (String(p.id) === String(pinId)) {
         likedState = !p.is_liked;
         nextCount = likedState ? (p.likes_count || 0) + 1 : Math.max(0, (p.likes_count || 0) - 1);
+        let likedBy = Array.isArray(p.liked_by) ? [...p.liked_by] : [];
+        if (likedState) {
+          if (!likedBy.includes(uid)) likedBy.push(uid);
+        } else {
+          likedBy = likedBy.filter(id => id !== uid);
+        }
         return {
           ...p,
           is_liked: likedState,
           likes_count: nextCount,
+          liked_by: likedBy,
         };
       }
       return p;
@@ -242,7 +263,7 @@ class AppStore {
     let ratingAvg = score;
     let ratingsCount = 1;
     this.pins = this.pins.map(p => {
-      if (p.id === Number(pinId)) {
+      if (String(p.id) === String(pinId)) {
         const prevCount = p.ratings_count || 0;
         const prevAvg = p.rating_avg || score;
         const hadRated = p.user_rating != null;
@@ -264,6 +285,7 @@ class AppStore {
       return p;
     });
     save(KEYS.PINS, this.pins);
+    notify();
     return { user_rating: score, rating_avg: ratingAvg, ratings_count: ratingsCount };
   }
 
@@ -277,7 +299,7 @@ class AppStore {
   addComment(pinId, { user_id, username, user_name, user_avatar, content, rating = null }) {
     const newComment = {
       id: Date.now(),
-      pin_id: Number(pinId),
+      pin_id: Number(pinId) || pinId,
       user_id,
       username,
       user_name: user_name || username,
@@ -291,35 +313,38 @@ class AppStore {
 
     // Update pin comments count
     this.pins = this.pins.map(p => {
-      if (p.id === Number(pinId)) {
+      if (String(p.id) === String(pinId)) {
         return { ...p, comments_count: (p.comments_count || 0) + 1 };
       }
       return p;
     });
     save(KEYS.PINS, this.pins);
+    notify();
     return newComment;
   }
 
   updateComment(commentId, content) {
-    this.comments = this.comments.map(c => c.id === Number(commentId) ? { ...c, content, updated_at: new Date().toISOString() } : c);
+    this.comments = this.comments.map(c => String(c.id) === String(commentId) ? { ...c, content, updated_at: new Date().toISOString() } : c);
     save(KEYS.COMMENTS, this.comments);
-    return this.comments.find(c => c.id === Number(commentId));
+    notify();
+    return this.comments.find(c => String(c.id) === String(commentId));
   }
 
   deleteComment(commentId) {
-    const comment = this.comments.find(c => c.id === Number(commentId));
+    const comment = this.comments.find(c => String(c.id) === String(commentId));
     if (comment) {
       const pinId = comment.pin_id;
-      this.comments = this.comments.filter(c => c.id !== Number(commentId));
+      this.comments = this.comments.filter(c => String(c.id) !== String(commentId));
       save(KEYS.COMMENTS, this.comments);
 
       this.pins = this.pins.map(p => {
-        if (p.id === Number(pinId)) {
+        if (String(p.id) === String(pinId)) {
           return { ...p, comments_count: Math.max(0, (p.comments_count || 1) - 1) };
         }
         return p;
       });
       save(KEYS.PINS, this.pins);
+      notify();
     }
     return true;
   }
@@ -362,16 +387,20 @@ class AppStore {
     return [...this.users];
   }
 
+  getUserById(id) {
+    return this.users.find(u => String(u.id) === String(id)) || null;
+  }
+
   updateUserProfile(userId, updates) {
-    this.users = this.users.map(u => u.id === Number(userId) ? { ...u, ...updates } : u);
+    this.users = this.users.map(u => String(u.id) === String(userId) ? { ...u, ...updates } : u);
     save(KEYS.USERS, this.users);
     notify();
-    return this.users.find(u => u.id === Number(userId));
+    return this.users.find(u => String(u.id) === String(userId));
   }
 
   updateUserRole(userId, role) {
-    const user = this.users.find(u => u.id === Number(userId));
-    this.users = this.users.map(u => u.id === Number(userId) ? { ...u, role } : u);
+    const user = this.users.find(u => String(u.id) === String(userId));
+    this.users = this.users.map(u => String(u.id) === String(userId) ? { ...u, role } : u);
     save(KEYS.USERS, this.users);
     this.addAuditLog('Update User Role', `${user ? `@${user.username}` : `User #${userId}`} -> ${role}`, 'Success');
     notify();
@@ -379,8 +408,8 @@ class AppStore {
   }
 
   updateUserStatus(userId, status) {
-    const user = this.users.find(u => u.id === Number(userId));
-    this.users = this.users.map(u => u.id === Number(userId) ? { ...u, status } : u);
+    const user = this.users.find(u => String(u.id) === String(userId));
+    this.users = this.users.map(u => String(u.id) === String(userId) ? { ...u, status } : u);
     save(KEYS.USERS, this.users);
     this.addAuditLog('Update User Status', `${user ? `@${user.username}` : `User #${userId}`} -> ${status}`, 'Success');
     notify();
@@ -388,8 +417,8 @@ class AppStore {
   }
 
   deleteUser(userId) {
-    const user = this.users.find(u => u.id === Number(userId));
-    this.users = this.users.filter(u => u.id !== Number(userId));
+    const user = this.users.find(u => String(u.id) === String(userId));
+    this.users = this.users.filter(u => String(u.id) !== String(userId));
     save(KEYS.USERS, this.users);
     this.addAuditLog('Delete User', user ? `@${user.username}` : `User #${userId}`, 'Success');
     notify();
@@ -397,10 +426,11 @@ class AppStore {
   }
 
   addUser(userData) {
+    const cleanUsername = (userData.username || 'new_user').toLowerCase().replace(/\s+/g, '_');
     const newUser = {
       id: Date.now(),
-      username: (userData.username || 'new_user').toLowerCase().replace(/\s+/g, '_'),
-      email: userData.email || 'chhivtyy16@gmail.com',
+      username: cleanUsername,
+      email: userData.email || `${cleanUsername}@pinboard.dev`,
       full_name: userData.full_name || 'New Member',
       bio: userData.bio || 'Pinboard community curator.',
       role: userData.role || 'user',
@@ -549,39 +579,57 @@ class AppStore {
     return this.categories.find(c => c.id === Number(categoryId));
   }
 
+  getCategoryById(id) {
+    return this.categories.find(c => String(c.id) === String(id) || c.slug === id) || null;
+  }
+
   updateCategory(id, updates) {
-    this.categories = this.categories.map(c => c.id === Number(id) ? { ...c, ...updates } : c);
+    this.categories = this.categories.map(c => String(c.id) === String(id) ? { ...c, ...updates } : c);
     save(KEYS.CATEGORIES, this.categories);
-    return this.categories.find(c => c.id === Number(id));
+    notify();
+    return this.categories.find(c => String(c.id) === String(id));
   }
 
   deleteCategory(id) {
-    this.categories = this.categories.filter(c => c.id !== Number(id));
+    this.categories = this.categories.filter(c => String(c.id) !== String(id));
     save(KEYS.CATEGORIES, this.categories);
+    notify();
     return true;
   }
 
   // Boards
   getBoards(userId) {
-    if (userId) {
-      return this.boards.filter(b => b.user_id === Number(userId) || b.user_id === 2);
+    if (userId != null) {
+      return this.boards.filter(b => String(b.user_id) === String(userId));
     }
     return [...this.boards];
   }
 
   getBoardById(id) {
-    const board = this.boards.find(b => b.id === Number(id)) || this.boards[0];
+    const board = this.boards.find(b => String(b.id) === String(id));
     if (!board) return null;
-    const pins = this.pins.filter(p => p.board_id === Number(id));
+    const pins = this.pins.filter(p => String(p.board_id) === String(id));
     return { ...board, pins };
   }
 
   addBoard(boardData) {
+    let currentUserId = 2;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const u = localStorage.getItem('user');
+        if (u) {
+          const parsed = JSON.parse(u);
+          if (parsed?.id) currentUserId = parsed.id;
+        }
+      } catch (e) {}
+    }
+
     const newBoard = {
       id: Date.now(),
-      user_id: 2,
+      user_id: boardData.user_id || currentUserId,
       pins_count: 0,
       preview_images: [],
+      pin_ids: [],
       created_at: new Date().toISOString(),
       ...boardData,
     };
@@ -592,16 +640,16 @@ class AppStore {
   }
 
   updateBoard(id, updates) {
-    this.boards = this.boards.map(b => b.id === Number(id) ? { ...b, ...updates } : b);
+    this.boards = this.boards.map(b => String(b.id) === String(id) ? { ...b, ...updates } : b);
     save(KEYS.BOARDS, this.boards);
     notify();
-    return this.boards.find(b => b.id === Number(id));
+    return this.boards.find(b => String(b.id) === String(id));
   }
 
   deleteBoard(id) {
-    this.boards = this.boards.filter(b => b.id !== Number(id));
+    this.boards = this.boards.filter(b => String(b.id) !== String(id));
     // Clear board association from pins
-    this.pins = this.pins.map(p => p.board_id === Number(id) ? { ...p, board_id: null, board_name: null } : p);
+    this.pins = this.pins.map(p => String(p.board_id) === String(id) ? { ...p, board_id: null, board_name: null } : p);
     save(KEYS.BOARDS, this.boards);
     save(KEYS.PINS, this.pins);
     notify();
@@ -609,19 +657,24 @@ class AppStore {
   }
 
   savePinToBoard(boardId, pinId) {
-    const pin = this.pins.find(p => p.id === Number(pinId));
-    const board = this.boards.find(b => b.id === Number(boardId));
+    const pin = this.pins.find(p => String(p.id) === String(pinId));
+    const board = this.boards.find(b => String(b.id) === String(boardId));
     if (!pin || !board) return null;
 
-    pin.board_id = Number(boardId);
+    pin.board_id = Number(boardId) || boardId;
     pin.board_name = board.name;
     pin.is_liked = true; // Also mark as saved/favorite
 
-    const boardPins = this.pins.filter(p => p.board_id === Number(boardId));
+    const boardPins = this.pins.filter(p => String(p.board_id) === String(boardId));
     board.pins_count = boardPins.length;
     board.preview_images = boardPins.slice(0, 3).map(p => p.image_url);
     if (!board.cover_image_url && pin.image_url) {
       board.cover_image_url = pin.image_url;
+    }
+
+    if (!Array.isArray(board.pin_ids)) board.pin_ids = [];
+    if (!board.pin_ids.some(id => String(id) === String(pinId))) {
+      board.pin_ids.push(Number(pinId) || pinId);
     }
 
     save(KEYS.PINS, this.pins);
@@ -636,16 +689,19 @@ class AppStore {
   }
 
   removePinFromBoard(boardId, pinId) {
-    const pin = this.pins.find(p => p.id === Number(pinId));
-    const board = this.boards.find(b => b.id === Number(boardId));
-    if (pin && pin.board_id === Number(boardId)) {
+    const pin = this.pins.find(p => String(p.id) === String(pinId));
+    const board = this.boards.find(b => String(b.id) === String(boardId));
+    if (pin && String(pin.board_id) === String(boardId)) {
       pin.board_id = null;
       pin.board_name = null;
     }
     if (board) {
-      const boardPins = this.pins.filter(p => p.board_id === Number(boardId));
+      const boardPins = this.pins.filter(p => String(p.board_id) === String(boardId));
       board.pins_count = boardPins.length;
       board.preview_images = boardPins.slice(0, 3).map(p => p.image_url);
+      if (Array.isArray(board.pin_ids)) {
+        board.pin_ids = board.pin_ids.filter(id => String(id) !== String(pinId));
+      }
     }
     save(KEYS.PINS, this.pins);
     save(KEYS.BOARDS, this.boards);
@@ -822,6 +878,8 @@ class AppStore {
     this.boards = [...MOCK_BOARDS];
     this.comments = [...MOCK_COMMENTS];
     this.reports = [...MOCK_REPORTS];
+    this.friends = [...MOCK_FRIENDS];
+    this.notifications = [];
     this.settings = { ...MOCK_SETTINGS };
     this.auditLogs = [
       { id: Date.now(), time: 'Just now', timestamp: Date.now(), admin: 'Alex Rivera (Admin)', action: 'Factory Reset', target: 'All Mock Datasets', status: 'Restored' },
@@ -833,6 +891,9 @@ class AppStore {
     save(KEYS.BOARDS, this.boards);
     save(KEYS.COMMENTS, this.comments);
     save(KEYS.REPORTS, this.reports);
+    save(KEYS.FRIENDS, this.friends);
+    save(KEYS.NOTIFICATIONS, this.notifications);
+    save(KEYS.RECENTLY_VIEWED, []);
     save(KEYS.SETTINGS, this.settings);
     save(KEYS.AUDIT_LOGS, this.auditLogs);
     notify();

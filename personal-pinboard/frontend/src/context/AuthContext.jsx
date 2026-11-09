@@ -8,7 +8,7 @@ const GUEST_USER = {
   id: 2,
   username: 'explorer',
   full_name: 'Pinboard Explorer',
-  email: 'chhivtyy16@gmail.com',
+  email: 'explorer@pinboard.dev',
   role: 'user',
   avatar_url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
 };
@@ -17,7 +17,7 @@ const GOOGLE_USER = {
   id: 3,
   username: 'chhiv_google',
   full_name: 'Chhiv Ty',
-  email: 'chhivtyy16@gmail.com',
+  email: 'chhiv@pinboard.dev',
   role: 'user',
   avatar_url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150',
 };

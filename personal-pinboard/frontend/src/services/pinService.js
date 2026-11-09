@@ -86,12 +86,18 @@ export const pinService = {
     const matchedBoard = data.board_id ? allBoards.find(b => b.id === Number(data.board_id)) : null;
     const matchedCategory = data.category_id ? allCategories.find(c => c.id === Number(data.category_id)) : null;
 
+    let currentUser = null;
+    try {
+      const saved = localStorage.getItem('user');
+      if (saved) currentUser = JSON.parse(saved);
+    } catch (e) {}
+
     const newPin = {
       id: Date.now(),
-      user_id: 2,
-      username: 'explorer',
-      author_name: 'Pinboard Explorer',
-      author_avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
+      user_id: currentUser?.id || 2,
+      username: currentUser?.username || 'explorer',
+      author_name: currentUser?.full_name || 'Pinboard Explorer',
+      author_avatar: currentUser?.avatar_url || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150',
       title: data.title,
       description: data.description || '',
       image_url: data.image_url,
