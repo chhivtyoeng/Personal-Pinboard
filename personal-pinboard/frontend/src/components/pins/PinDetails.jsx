@@ -187,6 +187,31 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
     }
   };
 
+  const categoryTitle =
+    pin.category_name ||
+    (typeof pin.category === 'object' && pin.category?.name ? pin.category.name : null) ||
+    (typeof pin.category_data === 'object' && pin.category_data?.name ? pin.category_data.name : null);
+
+  const authorName =
+    pin.author_name ||
+    pin.user?.full_name ||
+    pin.user_data?.full_name ||
+    pin.username ||
+    pin.user?.username ||
+    'Creator';
+
+  const authorUsername =
+    pin.username ||
+    pin.user?.username ||
+    pin.user_data?.username ||
+    'user';
+
+  const authorAvatar =
+    pin.author_avatar ||
+    pin.user?.avatar_url ||
+    pin.user_data?.avatar_url ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+
   return (
     <div className={`max-w-5xl mx-auto space-y-6 ${isModal ? 'p-1 sm:p-2 pb-16' : 'pb-16'}`}>
       {/* Top Navigation Row: Back Button & Category Breadcrumb */}
@@ -226,7 +251,7 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
           >
             {topic.label}
           </Badge>
-          {pin.category_name && (
+          {categoryTitle && (
             <Link
               to={`/pins?category=${pin.category_id || ''}`}
               onClick={() => {
@@ -234,7 +259,7 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
               }}
             >
               <Badge color="red" variant="light" size="md" className="font-semibold cursor-pointer hover:opacity-85">
-                {pin.category_name}
+                {categoryTitle}
               </Badge>
             </Link>
           )}
@@ -448,16 +473,16 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
               className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-100 dark:border-slate-800 transition-colors mb-6 shadow-2xs"
             >
               <Avatar
-                src={pin.author_avatar}
-                alt={pin.author_name || pin.username}
+                src={authorAvatar}
+                alt={authorName}
                 size="md"
                 radius="xl"
               />
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-slate-900 dark:text-white text-sm leading-snug truncate">
-                  {pin.author_name || pin.username}
+                  {authorName}
                 </p>
-                <p className="text-xs text-slate-400 dark:text-slate-500">@{pin.username}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500">@{authorUsername}</p>
               </div>
             </Link>
 
@@ -579,7 +604,32 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
               const isOwnComment = user && (user.id === comment.user_id || user.role === 'admin');
               const isEditing = editingCommentId === comment.id;
 
-              return (
+              const categoryTitle =
+    pin.category_name ||
+    (typeof pin.category === 'object' && pin.category?.name ? pin.category.name : null) ||
+    (typeof pin.category_data === 'object' && pin.category_data?.name ? pin.category_data.name : null);
+
+  const authorName =
+    pin.author_name ||
+    pin.user?.full_name ||
+    pin.user_data?.full_name ||
+    pin.username ||
+    pin.user?.username ||
+    'Creator';
+
+  const authorUsername =
+    pin.username ||
+    pin.user?.username ||
+    pin.user_data?.username ||
+    'user';
+
+  const authorAvatar =
+    pin.author_avatar ||
+    pin.user?.avatar_url ||
+    pin.user_data?.avatar_url ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+
+  return (
                 <div
                   key={comment.id}
                   className="p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200 space-y-2 group shadow-2xs"

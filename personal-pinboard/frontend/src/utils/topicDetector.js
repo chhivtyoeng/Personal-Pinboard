@@ -266,7 +266,22 @@ export function detectPinTopic(pinOrTitle, desc = '', category = '', tags = [], 
   if (pinOrTitle && typeof pinOrTitle === 'object') {
     titleText = pinOrTitle.title || '';
     descText = pinOrTitle.description || '';
-    catText = pinOrTitle.category_name || pinOrTitle.category || pinOrTitle.category_slug || '';
+
+    // Safely extract category string even if category is an object or null
+    if (typeof pinOrTitle.category === 'object' && pinOrTitle.category !== null) {
+      catText = pinOrTitle.category.name || pinOrTitle.category.slug || '';
+    } else if (typeof pinOrTitle.category_data === 'object' && pinOrTitle.category_data !== null) {
+      catText = pinOrTitle.category_data.name || pinOrTitle.category_data.slug || '';
+    } else if (typeof pinOrTitle.category_name === 'string') {
+      catText = pinOrTitle.category_name;
+    } else if (typeof pinOrTitle.category === 'string') {
+      catText = pinOrTitle.category;
+    } else if (typeof pinOrTitle.category_slug === 'string') {
+      catText = pinOrTitle.category_slug;
+    } else {
+      catText = '';
+    }
+
     tagList = Array.isArray(pinOrTitle.tags)
       ? pinOrTitle.tags
       : typeof pinOrTitle.tags === 'string'
@@ -276,10 +291,13 @@ export function detectPinTopic(pinOrTitle, desc = '', category = '', tags = [], 
   } else {
     titleText = String(pinOrTitle || '');
     descText = String(desc || '');
-    catText = String(category || '');
+    catText = typeof category === 'object' && category !== null ? (category.name || category.slug || '') : String(category || '');
     tagList = Array.isArray(tags) ? tags : typeof tags === 'string' ? tags.split(',') : [];
     pinType = String(type || '');
   }
+
+  // Ensure catText is always a string
+  catText = typeof catText === 'string' ? catText : '';
 
   // 1. Explicit Pin Type Overrides (if not generic image)
   if (pinType === 'video') return TOPIC_DEFINITIONS.find((t) => t.id === 'video') || DEFAULT_TOPIC;

@@ -7,6 +7,7 @@ import { AuthProvider } from './context/AuthContext';
 import { ToastProvider } from './context/ToastContext';
 import { SettingsProvider } from './context/SettingsContext';
 import ScrollToTop from './components/common/ScrollToTop';
+import ErrorBoundary from './components/common/ErrorBoundary';
 import AppRoutes from './routes/AppRoutes';
 
 export default function App() {
@@ -14,14 +15,16 @@ export default function App() {
     <MantineProvider theme={theme} defaultColorScheme="auto">
       <ThemeProvider>
         <ToastProvider>
-          <BrowserRouter>
-            <ScrollToTop />
-            <AuthProvider>
-              <SettingsProvider>
-                <AppRoutes />
-              </SettingsProvider>
-            </AuthProvider>
-          </BrowserRouter>
+          <ErrorBoundary>
+            <BrowserRouter>
+              <ScrollToTop />
+              <AuthProvider>
+                <SettingsProvider>
+                  <AppRoutes />
+                </SettingsProvider>
+              </AuthProvider>
+            </BrowserRouter>
+          </ErrorBoundary>
         </ToastProvider>
       </ThemeProvider>
     </MantineProvider>
