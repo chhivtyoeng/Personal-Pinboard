@@ -228,6 +228,15 @@ export const deleteBoard = async (req, res, next) => {
 
     await Board.findByIdAndDelete(req.params.id);
 
+    if (board.user_id) {
+      const u = await User.findById(board.user_id);
+      if (u) {
+        await User.findByIdAndUpdate(board.user_id, {
+          boards_count: Math.max(0, (u.boards_count || 1) - 1),
+        });
+      }
+    }
+
     res.json({
       success: true,
       message: 'Board deleted successfully',

@@ -603,33 +603,20 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
             comments.map((comment) => {
               const isOwnComment = user && (user.id === comment.user_id || user.role === 'admin');
               const isEditing = editingCommentId === comment.id;
+              const commentUserAvatar =
+                comment.user_avatar ||
+                comment.user?.avatar_url ||
+                comment.user_data?.avatar_url ||
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+              const commentUserName =
+                comment.user_name ||
+                comment.user?.full_name ||
+                comment.user_data?.full_name ||
+                comment.username ||
+                comment.user?.username ||
+                'User';
 
-              const categoryTitle =
-    pin.category_name ||
-    (typeof pin.category === 'object' && pin.category?.name ? pin.category.name : null) ||
-    (typeof pin.category_data === 'object' && pin.category_data?.name ? pin.category_data.name : null);
-
-  const authorName =
-    pin.author_name ||
-    pin.user?.full_name ||
-    pin.user_data?.full_name ||
-    pin.username ||
-    pin.user?.username ||
-    'Creator';
-
-  const authorUsername =
-    pin.username ||
-    pin.user?.username ||
-    pin.user_data?.username ||
-    'user';
-
-  const authorAvatar =
-    pin.author_avatar ||
-    pin.user?.avatar_url ||
-    pin.user_data?.avatar_url ||
-    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
-
-  return (
+              return (
                 <div
                   key={comment.id}
                   className="p-4 rounded-2xl bg-white dark:bg-slate-800/90 border border-slate-100 dark:border-slate-700/80 hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200 space-y-2 group shadow-2xs"
@@ -637,14 +624,14 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
                       <Avatar
-                        src={comment.user_avatar}
-                        alt={comment.user_name || comment.username}
+                        src={commentUserAvatar}
+                        alt={commentUserName}
                         radius="xl"
                         size="sm"
                       />
                       <div>
                         <span className="text-xs font-bold text-slate-900 dark:text-white">
-                          {comment.user_name || comment.username}
+                          {commentUserName}
                         </span>
                         <span className="text-[11px] text-slate-400 ml-2">
                           {formatDate(comment.created_at)}

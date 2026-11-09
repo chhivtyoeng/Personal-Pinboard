@@ -319,6 +319,38 @@ export const deletePin = async (req, res, next) => {
     await Pin.findByIdAndDelete(req.params.id);
     await Comment.deleteMany({ pin_id: req.params.id });
 
+    // Decrement board pin count & remove from pin_ids
+    if (pin.board_id) {
+      const board = await Board.findById(pin.board_id);
+      if (board) {
+        const pinIds = Array.isArray(board.pin_ids) ? board.pin_ids.filter((pid) => String(pid) !== String(pin.id)) : [];
+        await Board.findByIdAndUpdate(pin.board_id, {
+          pins_count: Math.max(0, (board.pins_count || 1) - 1),
+          pin_ids: pinIds,
+        });
+      }
+    }
+
+    // Decrement category pin count
+    if (pin.category_id) {
+      const cat = await Category.findById(pin.category_id);
+      if (cat) {
+        await Category.findByIdAndUpdate(pin.category_id, {
+          pins_count: Math.max(0, (cat.pins_count || 1) - 1),
+        });
+      }
+    }
+
+    // Decrement user pin count
+    if (pin.user_id) {
+      const u = await User.findById(pin.user_id);
+      if (u) {
+        await User.findByIdAndUpdate(pin.user_id, {
+          pins_count: Math.max(0, (u.pins_count || 1) - 1),
+        });
+      }
+    }
+
     res.json({
       success: true,
       message: 'Pin deleted successfully',

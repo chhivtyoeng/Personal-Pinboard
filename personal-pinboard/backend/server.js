@@ -109,16 +109,18 @@ const gracefulShutdown = async (signal) => {
 
   try {
     // 1. Stop receiving new HTTP requests and finish active requests
-    await new Promise((resolve) => {
-      server.close((err) => {
-        if (err) {
-          console.error('❌ [SHUTDOWN] Error closing HTTP server:', err);
-        } else {
-          console.log('✅ [SHUTDOWN] HTTP server closed gracefully (all active connections finished).');
-        }
-        resolve();
+    if (server && server.listening) {
+      await new Promise((resolve) => {
+        server.close((err) => {
+          if (err) {
+            console.error('❌ [SHUTDOWN] Error closing HTTP server:', err);
+          } else {
+            console.log('✅ [SHUTDOWN] HTTP server closed gracefully (all active connections finished).');
+          }
+          resolve();
+        });
       });
-    });
+    }
 
     // 2. Cleanly close Database connection pool
     await closeDB();

@@ -7,9 +7,10 @@ export const Board = {
       const params = [];
       let idx = 1;
 
-      if (filter.user_id) {
+      const targetUserId = filter.user_id || filter.userId;
+      if (targetUserId) {
         sql += ` AND user_id = $${idx++}`;
-        params.push(Number(filter.user_id));
+        params.push(Number(targetUserId));
       }
       if (filter.is_private !== undefined) {
         sql += ` AND is_private = $${idx++}`;
@@ -26,8 +27,9 @@ export const Board = {
 
     const db = getLocalDb();
     let result = [...db.boards];
-    if (filter.user_id) {
-      result = result.filter((b) => String(b.user_id) === String(filter.user_id));
+    const targetUserId = filter.user_id || filter.userId;
+    if (targetUserId) {
+      result = result.filter((b) => String(b.user_id) === String(targetUserId));
     }
     if (filter.is_private !== undefined) {
       result = result.filter((b) => Boolean(b.is_private) === Boolean(filter.is_private));

@@ -20,7 +20,11 @@ export default function EditPin() {
     async function loadPin() {
       try {
         const data = await pinService.getPinById(id);
-        setPin(data);
+        if (!data) {
+          setError('Pin not found or may have been deleted.');
+        } else {
+          setPin(data);
+        }
       } catch (err) {
         setError(err.message || 'Failed to fetch pin');
       } finally {

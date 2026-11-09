@@ -15,17 +15,20 @@ export const Pin = {
         sqlParams.push(`%${params.search.toLowerCase()}%`);
         paramIdx++;
       }
-      if (params.categoryId) {
+      const catId = params.categoryId || params.category_id;
+      if (catId) {
         sql += ` AND category_id = $${paramIdx++}`;
-        sqlParams.push(Number(params.categoryId));
+        sqlParams.push(Number(catId));
       }
-      if (params.boardId || params.board) {
+      const bId = params.boardId || params.board_id || params.board;
+      if (bId) {
         sql += ` AND board_id = $${paramIdx++}`;
-        sqlParams.push(Number(params.boardId || params.board));
+        sqlParams.push(Number(bId));
       }
-      if (params.userId) {
+      const uId = params.userId || params.user_id;
+      if (uId) {
         sql += ` AND user_id = $${paramIdx++}`;
-        sqlParams.push(Number(params.userId));
+        sqlParams.push(Number(uId));
       }
       if (params.type && params.type !== 'all') {
         sql += ` AND LOWER(type) = $${paramIdx++}`;
@@ -79,19 +82,21 @@ export const Pin = {
     } else if (params.privacy === 'public') {
       result = result.filter((p) => !p.is_private);
     }
-    if (params.categoryId) {
-      result = result.filter((p) => String(p.category_id) === String(params.categoryId));
+    const fallbackCatId = params.categoryId || params.category_id;
+    if (fallbackCatId) {
+      result = result.filter((p) => String(p.category_id) === String(fallbackCatId));
     }
-    if (params.boardId || params.board) {
-      const bId = String(params.boardId || params.board);
-      result = result.filter((p) => String(p.board_id) === bId);
+    const fallbackBId = params.boardId || params.board_id || params.board;
+    if (fallbackBId) {
+      result = result.filter((p) => String(p.board_id) === String(fallbackBId));
     }
     if (params.tag) {
       const tagLower = params.tag.toLowerCase();
       result = result.filter((p) => p.tags && p.tags.some((t) => t.toLowerCase() === tagLower));
     }
-    if (params.userId) {
-      result = result.filter((p) => String(p.user_id) === String(params.userId));
+    const fallbackUId = params.userId || params.user_id;
+    if (fallbackUId) {
+      result = result.filter((p) => String(p.user_id) === String(fallbackUId));
     }
     if (params.likedByUserId) {
       result = result.filter((p) => p.liked_by && p.liked_by.some((uid) => String(uid) === String(params.likedByUserId)));

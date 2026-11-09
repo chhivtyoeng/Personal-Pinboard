@@ -33,6 +33,21 @@ export default function PinCard({ pin, onLikeToggle, onDelete, onOpenModal }) {
 
   const isAuthorOrAdmin = user && (user.id === pin.user_id || user.role === 'admin');
 
+  const authorName =
+    pin.author_name ||
+    pin.user?.full_name ||
+    pin.user_data?.full_name ||
+    pin.username ||
+    pin.user?.username ||
+    pin.user_data?.username ||
+    'Creator';
+
+  const authorAvatar =
+    pin.author_avatar ||
+    pin.user?.avatar_url ||
+    pin.user_data?.avatar_url ||
+    'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150';
+
   const handleSavedToBoard = (board) => {
     setIsLiked(true);
     setSavedBoardName(board.name);
@@ -218,14 +233,14 @@ export default function PinCard({ pin, onLikeToggle, onDelete, onOpenModal }) {
             title={`Visit ${pin.author_name || pin.username}'s profile`}
           >
             <Avatar
-              src={pin.author_avatar}
+              src={authorAvatar}
               size={20}
               radius="xl"
               className="ring-1 ring-slate-200 dark:ring-slate-700 group-hover/author:ring-brand-500 transition-all shrink-0"
-              alt={pin.author_name || pin.username}
+              alt={authorName}
             />
             <span className="truncate font-medium text-slate-600 dark:text-slate-400 group-hover/author:text-slate-900 dark:group-hover/author:text-white transition-colors text-[11.5px] leading-tight">
-              {pin.author_name || pin.username}
+              {authorName}
             </span>
           </button>
 
