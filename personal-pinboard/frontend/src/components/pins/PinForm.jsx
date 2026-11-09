@@ -490,7 +490,7 @@ export default function PinForm({
           </div>
 
           {/* Privacy Toggle: Public vs Secret/Private */}
-          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-700/80">
+          <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-800/80 border border-slate-200/80 dark:border-slate-700/80 transition-colors">
             <div className="flex items-center gap-3">
               <div
                 className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${

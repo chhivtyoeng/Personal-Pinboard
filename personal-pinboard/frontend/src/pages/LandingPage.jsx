@@ -1128,7 +1128,7 @@ export default function LandingPage() {
                   {heroPins.slice(0, 2).map((card) => (
                     <div
                       key={card.id}
-                      className="group relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-300 ease-out hover:-translate-y-2 hover:border-rose-400/60 dark:hover:border-rose-500/40 active:scale-[0.98] select-none"
+                      className="group relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-300 ease-out hover:-translate-y-2 hover:border-rose-400/60 dark:hover:border-rose-500/40 active:scale-[0.98] select-none"
                     >
                       <img
                         src={card.image}
@@ -1146,7 +1146,7 @@ export default function LandingPage() {
                   {heroPins.slice(2, 4).map((card) => (
                     <div
                       key={card.id}
-                      className="group relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-300 ease-out hover:-translate-y-2 hover:border-rose-400/60 dark:hover:border-rose-500/40 active:scale-[0.98] select-none"
+                      className="group relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-300 ease-out hover:-translate-y-2 hover:border-rose-400/60 dark:hover:border-rose-500/40 active:scale-[0.98] select-none"
                     >
                       <img
                         src={card.image}
@@ -1164,7 +1164,7 @@ export default function LandingPage() {
                   {heroPins.slice(4, 6).map((card) => (
                     <div
                       key={card.id}
-                      className="group relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-300 ease-out hover:-translate-y-2 hover:border-rose-400/60 dark:hover:border-rose-500/40 active:scale-[0.98] select-none"
+                      className="group relative rounded-3xl overflow-hidden bg-slate-100 dark:bg-slate-800/90 border border-slate-200/80 dark:border-slate-800 shadow-2xs hover:shadow-md transition-all duration-300 ease-out hover:-translate-y-2 hover:border-rose-400/60 dark:hover:border-rose-500/40 active:scale-[0.98] select-none"
                     >
                       <img
                         src={card.image}

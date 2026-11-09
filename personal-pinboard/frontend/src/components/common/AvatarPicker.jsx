@@ -167,7 +167,7 @@ export default function AvatarPicker({
           className={`flex flex-col items-center text-center p-4 sm:p-5 rounded-3xl transition-all duration-200 ${
             isDragging
               ? 'border-2 border-dashed border-brand-500 bg-brand-50/50 dark:bg-brand-950/30 scale-[1.01]'
-              : 'border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-850/60 hover:border-slate-300 dark:hover:border-slate-700'
+              : 'border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/60 hover:border-slate-300 dark:hover:border-slate-700'
           }`}
         >
           {/* Avatar Preview with Camera Overlay */}

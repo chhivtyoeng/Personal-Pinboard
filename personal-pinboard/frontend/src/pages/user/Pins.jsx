@@ -222,7 +222,7 @@ export default function Pins() {
       )}
 
       {/* Category Sharing Rule Banner: Tell user they can share only 5 people on 1 category */}
-      <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-50/70 via-white to-amber-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-850 border border-rose-100 dark:border-slate-800 text-xs shadow-2xs">
+      <div className="flex items-center justify-between gap-3 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-rose-50/70 via-white to-amber-50/50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 border border-rose-100 dark:border-slate-800 text-xs shadow-2xs">
         <div className="flex items-center gap-2.5 text-slate-700 dark:text-slate-300">
           <div className="w-7 h-7 rounded-full bg-brand-100 dark:bg-brand-950/80 text-brand-600 dark:text-brand-400 flex items-center justify-center shrink-0">
             <IconUsers size={15} />
