@@ -10,25 +10,20 @@ import {
 } from '../data/mockData';
 
 const KEYS = {
-  PINS: 'pinboard_pins_v2',
-  COMMENTS: 'pinboard_comments_v2',
-  REPORTS: 'pinboard_reports_v2',
-  USERS: 'pinboard_users_v2',
-  FRIENDS: 'pinboard_friends_v2',
-  CATEGORIES: 'pinboard_categories_v2',
-  BOARDS: 'pinboard_boards_v2',
-  SETTINGS: 'pinboard_settings_v2',
-  NOTIFICATIONS: 'pinboard_notifications_v3',
-  RECENTLY_VIEWED: 'pinboard_recently_viewed_pins_v1',
-  AUDIT_LOGS: 'pinboard_audit_logs_v2',
+  PINS: 'pinboard_pins_v3',
+  COMMENTS: 'pinboard_comments_v3',
+  REPORTS: 'pinboard_reports_v3',
+  USERS: 'pinboard_users_v3',
+  FRIENDS: 'pinboard_friends_v3',
+  CATEGORIES: 'pinboard_categories_v3',
+  BOARDS: 'pinboard_boards_v3',
+  SETTINGS: 'pinboard_settings_v3',
+  NOTIFICATIONS: 'pinboard_notifications_v4',
+  RECENTLY_VIEWED: 'pinboard_recently_viewed_pins_v2',
+  AUDIT_LOGS: 'pinboard_audit_logs_v3',
 };
 
-const DEFAULT_AUDIT_LOGS = [
-  { id: 1, time: '10m ago', timestamp: Date.now() - 10 * 60 * 1000, admin: 'Alex Rivera', action: 'Promote Role', target: 'User #8 (sophia_mod)', status: 'Success' },
-  { id: 2, time: '1h ago', timestamp: Date.now() - 60 * 60 * 1000, admin: 'Alex Rivera', action: 'Dismiss Report', target: 'Report #104 (Pin #2)', status: 'Success' },
-  { id: 3, time: '3h ago', timestamp: Date.now() - 3 * 60 * 60 * 1000, admin: 'Alex Rivera', action: 'Update Policy', target: 'Moderation Threshold', status: 'Applied' },
-  { id: 4, time: '1d ago', timestamp: Date.now() - 24 * 60 * 60 * 1000, admin: 'Alex Rivera', action: 'Account Reactivation', target: 'User #5 (david_kim)', status: 'Success' },
-];
+const DEFAULT_AUDIT_LOGS = [];
 
 const INITIAL_NOTIFICATIONS = [];
 
