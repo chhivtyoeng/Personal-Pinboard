@@ -85,12 +85,12 @@ class AppStore {
     });
     save(KEYS.PINS, this.pins);
 
-    const loadedCats = load(KEYS.CATEGORIES, MOCK_CATEGORIES);
-    this.categories = (loadedCats && loadedCats.length > 0) ? loadedCats : [...MOCK_CATEGORIES];
-    const loadedBoards = load(KEYS.BOARDS, MOCK_BOARDS);
-    this.boards = (loadedBoards && loadedBoards.length > 0) ? loadedBoards : [...MOCK_BOARDS];
-    const loadedComments = load(KEYS.COMMENTS, MOCK_COMMENTS);
-    this.comments = (loadedComments && loadedComments.length > 0) ? loadedComments : [...MOCK_COMMENTS];
+    const loadedCats = load(KEYS.CATEGORIES, null);
+    this.categories = Array.isArray(loadedCats) ? loadedCats : [...MOCK_CATEGORIES];
+    const loadedBoards = load(KEYS.BOARDS, null);
+    this.boards = Array.isArray(loadedBoards) ? loadedBoards : [...MOCK_BOARDS];
+    const loadedComments = load(KEYS.COMMENTS, null);
+    this.comments = Array.isArray(loadedComments) ? loadedComments : [...MOCK_COMMENTS];
 
     // Auto-sync any new mock comments into existing store
     MOCK_COMMENTS.forEach((mComment) => {
@@ -99,8 +99,8 @@ class AppStore {
       }
     });
 
-    const loadedReports = load(KEYS.REPORTS, MOCK_REPORTS);
-    this.reports = (loadedReports && loadedReports.length > 0) ? loadedReports : [...MOCK_REPORTS];
+    const loadedReports = load(KEYS.REPORTS, null);
+    this.reports = Array.isArray(loadedReports) ? loadedReports : [...MOCK_REPORTS];
     this.friends = load(KEYS.FRIENDS, []);
     this.notifications = load(KEYS.NOTIFICATIONS, []);
     this.settings = load(KEYS.SETTINGS, MOCK_SETTINGS);
@@ -346,7 +346,7 @@ class AppStore {
 
   // Reports
   getReports() {
-    return [...this.reports].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return [...this.reports].sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
   }
 
   addReport({ pin_id, reporter_id, reporter_username, reporter_email, reason, details }) {
@@ -370,11 +370,19 @@ class AppStore {
   }
 
   updateReportStatus(reportId, status) {
-    this.reports = this.reports.map(r => r.id === Number(reportId) ? { ...r, status, updated_at: new Date().toISOString() } : r);
+    this.reports = this.reports.map(r => String(r.id) === String(reportId) ? { ...r, status, updated_at: new Date().toISOString() } : r);
     save(KEYS.REPORTS, this.reports);
     this.addAuditLog('Moderate Report', `Report #${reportId} (${status})`, 'Success');
     notify();
-    return this.reports.find(r => r.id === Number(reportId));
+    return this.reports.find(r => String(r.id) === String(reportId));
+  }
+
+  deleteReport(reportId) {
+    this.reports = this.reports.filter(r => String(r.id) !== String(reportId));
+    save(KEYS.REPORTS, this.reports);
+    this.addAuditLog('Delete Report', `Report #${reportId}`, 'Success');
+    notify();
+    return true;
   }
 
   // Users

@@ -253,6 +253,62 @@ async function runTests() {
     const res20 = await request('DELETE', '/api/categories/1', null, userToken);
     assert(res20.status === 403, 'Non-admin deleting category rejected with 403 Forbidden');
 
+    // Test 21: User creates a safety report for pin
+    const res21 = await request(
+      'POST',
+      `/api/pins/${pinId}/report`,
+      {
+        reason: 'Inappropriate content',
+        details: 'Testing report deletion workflow',
+      },
+      userToken
+    );
+    assert(res21.status === 201, 'User can submit safety report (201 Created)');
+    const reportId = res21.body?.data?.id;
+
+    // Test 22: Non-admin deleting report is rejected (403 Forbidden)
+    const res22 = await request('DELETE', `/api/admin/reports/${reportId}`, null, userToken);
+    assert(res22.status === 403, 'Non-admin deleting report rejected with 403 Forbidden');
+
+    // Test 23: Admin can delete safety report (200 OK)
+    const res23 = await request('DELETE', `/api/admin/reports/${reportId}`, null, adminToken);
+    assert(res23.status === 200, 'Admin deleting report succeeds with 200 OK');
+
+    // Test 24: Deleting already deleted report returns 404 Not Found without crashing
+    const res24 = await request('DELETE', `/api/admin/reports/${reportId}`, null, adminToken);
+    assert(res24.status === 404, 'Deleting non-existent report returns 404 Not Found');
+
+    // Test 25: Malformed report ID returns 404 without 500 server crash
+    const res25 = await request('DELETE', '/api/admin/reports/invalid_id_format', null, adminToken);
+    assert(res25.status === 404, 'Malformed report ID returns 404 Not Found (no 500 crash)');
+
+    // Test 26: Safety report deletion does NOT delete the underlying pin
+    const resPinCheck = await request('GET', `/api/pins/${pinId}`, null, userToken);
+    assert(resPinCheck.status === 200, 'Pin remains intact after safety report removal');
+
+    // Test 27: Admin can create and delete category via route param alias /:categoryId
+    const resCat = await request(
+      'POST',
+      '/api/categories',
+      { name: `Temp Cat ${Date.now()}` },
+      adminToken
+    );
+    assert(resCat.status === 201, 'Admin can create category');
+    const tempCatId = resCat.body?.data?.id;
+
+    const resDelCat = await request('DELETE', `/api/admin/categories/${tempCatId}`, null, adminToken);
+    assert(resDelCat.status === 200, 'Admin can delete category via /api/admin/categories/:id');
+
+    // Test 28: Admin can delete pin via route param alias
+    const resDelPin = await request('DELETE', `/api/admin/pins/${pinId}`, null, adminToken);
+    assert(resDelPin.status === 200, 'Admin can delete pin via /api/admin/pins/:id');
+
+    // Test 29: Admin stats endpoint returns correct numeric counters
+    const resStats = await request('GET', '/api/admin/stats', null, adminToken);
+    assert(resStats.status === 200, 'Admin stats retrieved successfully (200 OK)');
+    assert(typeof resStats.body?.data?.totalCategories === 'number', 'totalCategories is included in stats');
+    assert(typeof resStats.body?.data?.totalReports === 'number', 'totalReports is included in stats');
+
     console.log(`\n========================================`);
     console.log(`AUDIT RESULTS: ${passed} PASSED, ${failed} FAILED`);
     console.log(`========================================`);

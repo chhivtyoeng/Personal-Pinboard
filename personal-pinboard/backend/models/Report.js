@@ -34,7 +34,9 @@ export const Report = {
 
   async findById(id) {
     if (isPostgresConnected && pool) {
-      const res = await pool.query('SELECT * FROM reports WHERE id = $1', [Number(id) || id]);
+      const numId = Number(id);
+      if (isNaN(numId)) return null;
+      const res = await pool.query('SELECT * FROM reports WHERE id = $1', [numId]);
       return res.rows[0] || null;
     }
 
@@ -128,7 +130,9 @@ export const Report = {
 
   async findByIdAndDelete(id) {
     if (isPostgresConnected && pool) {
-      const res = await pool.query('DELETE FROM reports WHERE id = $1 RETURNING *', [Number(id) || id]);
+      const numId = Number(id);
+      if (isNaN(numId)) return null;
+      const res = await pool.query('DELETE FROM reports WHERE id = $1 RETURNING *', [numId]);
       return res.rows[0] || null;
     }
 
@@ -138,6 +142,37 @@ export const Report = {
     const deleted = db.reports.splice(index, 1)[0];
     saveLocalDb();
     return deleted;
+  },
+
+  async deleteMany(filter = {}) {
+    if (isPostgresConnected && pool) {
+      if (filter.pin_id) {
+        const numPinId = Number(filter.pin_id);
+        if (isNaN(numPinId)) return [];
+        const res = await pool.query('DELETE FROM reports WHERE pin_id = $1 RETURNING *', [numPinId]);
+        return res.rows;
+      }
+      const res = await pool.query('DELETE FROM reports RETURNING *');
+      return res.rows;
+    }
+
+    const db = getLocalDb();
+    if (filter.pin_id) {
+      const removed = [];
+      db.reports = db.reports.filter((r) => {
+        if (String(r.pin_id) === String(filter.pin_id)) {
+          removed.push(r);
+          return false;
+        }
+        return true;
+      });
+      saveLocalDb();
+      return removed;
+    }
+    const removed = [...db.reports];
+    db.reports = [];
+    saveLocalDb();
+    return removed;
   },
 
   async countDocuments(filter = {}) {

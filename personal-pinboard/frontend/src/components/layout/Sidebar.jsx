@@ -19,6 +19,7 @@ import {
 import { useAuth } from '../../hooks/useAuth';
 import { useBodyScrollLock } from '../../hooks/useBodyScrollLock';
 import { appStore } from '../../services/store';
+import { userService } from '../../services/userService';
 import LogoutConfirmModal from '../common/LogoutConfirmModal';
 import { toast } from '../../context/ToastContext';
 
@@ -100,32 +101,59 @@ export default function Sidebar({ isOpen, onClose }) {
   });
 
   useEffect(() => {
-    const updateCounts = () => {
+    let isMounted = true;
+    const updateCounts = async () => {
       const allPins = appStore.getPins() || [];
       const allBoards = appStore.getBoards() || [];
       const allCats = appStore.getCategories() || [];
       const allUsers = appStore.getUsers() || [];
       const allReports = appStore.getReports() || [];
-      setCounts({
+
+      let newCounts = {
         pins: allPins.length,
         favorites: allPins.filter((p) => p.is_liked).length,
         boards: allBoards.length,
         categories: allCats.length,
         users: allUsers.length,
-        reports: allReports.filter((r) => r.status === 'pending').length,
-      });
+        reports: allReports.length,
+      };
+
+      // Set local store counts immediately for instantaneous UI update
+      if (isMounted) {
+        setCounts(newCounts);
+      }
+
+      if (isAdmin) {
+        try {
+          const stats = await userService.getAdminStats();
+          if (stats && isMounted) {
+            setCounts((prev) => ({
+              ...prev,
+              pins: stats.totalPins !== undefined ? stats.totalPins : prev.pins,
+              favorites: prev.favorites,
+              boards: stats.totalBoards !== undefined ? stats.totalBoards : prev.boards,
+              categories: stats.totalCategories !== undefined ? stats.totalCategories : prev.categories,
+              users: stats.totalUsers !== undefined ? stats.totalUsers : prev.users,
+              reports: stats.totalReports !== undefined ? stats.totalReports : prev.reports,
+            }));
+          }
+        } catch (_) {}
+      }
     };
 
     updateCounts();
     window.addEventListener('focus', updateCounts);
     window.addEventListener('storage', updateCounts);
+    window.addEventListener('pinboard-store-update', updateCounts);
     const interval = setInterval(updateCounts, 3000);
     return () => {
+      isMounted = false;
       window.removeEventListener('focus', updateCounts);
       window.removeEventListener('storage', updateCounts);
+      window.removeEventListener('pinboard-store-update', updateCounts);
       clearInterval(interval);
     };
-  }, []);
+  }, [isAdmin]);
 
   const discoverItems = [
     {
@@ -186,7 +214,7 @@ export default function Sidebar({ isOpen, onClose }) {
       description: 'Accounts, roles & status',
       icon: IconUsers,
       path: '/admin/users',
-      count: counts.users > 0 ? counts.users : null,
+      count: counts.users !== undefined && counts.users !== null ? counts.users : 0,
       end: true,
     },
     {
@@ -194,7 +222,7 @@ export default function Sidebar({ isOpen, onClose }) {
       description: 'Review, hide & delete content',
       icon: IconCompass,
       path: '/admin/pins',
-      count: counts.pins > 0 ? counts.pins : null,
+      count: counts.pins !== undefined && counts.pins !== null ? counts.pins : 0,
       end: true,
     },
     {
@@ -202,7 +230,7 @@ export default function Sidebar({ isOpen, onClose }) {
       description: 'Taxonomy & topic governance',
       icon: IconCategory,
       path: '/admin/categories',
-      count: counts.categories > 0 ? counts.categories : null,
+      count: counts.categories !== undefined && counts.categories !== null ? counts.categories : 0,
       end: true,
     },
     {
@@ -210,7 +238,7 @@ export default function Sidebar({ isOpen, onClose }) {
       description: 'Flagged pins & violations',
       icon: IconFlag,
       path: '/admin/reports',
-      count: counts.reports > 0 ? counts.reports : null,
+      count: counts.reports !== undefined && counts.reports !== null ? counts.reports : 0,
       countColor: 'red',
       end: true,
     },

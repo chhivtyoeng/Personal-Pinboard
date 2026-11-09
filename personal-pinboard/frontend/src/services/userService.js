@@ -73,6 +73,7 @@ export const userService = {
     const pins = appStore.getPins();
     const comments = appStore.comments || [];
     const reports = appStore.getReports();
+    const categories = appStore.getCategories();
     return {
       totalUsers: users.length,
       totalPins: pins.length,
@@ -81,6 +82,7 @@ export const userService = {
       totalReports: reports.length,
       pendingReports: reports.filter(r => r.status === 'pending').length,
       activeUsers: users.filter(u => u.status === 'active' || !u.status).length,
+      totalCategories: categories.length,
     };
   },
 
@@ -181,6 +183,12 @@ export const userService = {
     try {
       const response = await api.get('/admin/reports', { params });
       if (response?.data?.data) {
+        if (!params.status) {
+          appStore.reports = response.data.data;
+          try {
+            localStorage.setItem('pinboard_reports_v3', JSON.stringify(response.data.data));
+          } catch (_) {}
+        }
         return response.data.data;
       }
     } catch (error) {
@@ -202,10 +210,28 @@ export const userService = {
         return response.data.data;
       }
     } catch (error) {
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        throw error;
+      }
       // Graceful fallback to appStore
     }
 
     return appStore.updateReportStatus(id, status);
+  },
+
+  async deleteReport(id) {
+    try {
+      const response = await api.delete(`/admin/reports/${id}`);
+      appStore.deleteReport(id);
+      return response?.data || { success: true };
+    } catch (error) {
+      if (error?.response?.status === 401 || error?.response?.status === 403) {
+        throw error;
+      }
+      // Graceful fallback to appStore
+      appStore.deleteReport(id);
+      return { success: true };
+    }
   },
 
   async getSettings() {

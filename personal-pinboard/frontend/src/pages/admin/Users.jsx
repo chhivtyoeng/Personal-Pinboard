@@ -29,6 +29,7 @@ import UserTable from '../../components/admin/UserTable';
 import SearchInput from '../../components/common/SearchInput';
 import Loading from '../../components/common/Loading';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { appStore } from '../../services/store';
 import { userService } from '../../services/userService';
 import { formatDate } from '../../utils/formatDate';
 import { toast } from '../../context/ToastContext';
@@ -129,7 +130,7 @@ export default function Users() {
       setActionLoading(true);
       try {
         await userService.deleteUser(user.id);
-        setUsers((prev) => prev.filter((u) => u.id !== user.id));
+        setUsers((prev) => prev.filter((u) => String(u.id) !== String(user.id)));
         setConfirmOpen(false);
         toast.success(`User @${user.username} deleted.`);
       } catch (err) {

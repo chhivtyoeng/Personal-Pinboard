@@ -3,6 +3,7 @@ import Pin from '../models/Pin.js';
 import Board from '../models/Board.js';
 import Comment from '../models/Comment.js';
 import Report from '../models/Report.js';
+import Category from '../models/Category.js';
 import Setting from '../models/Setting.js';
 import AuditLog from '../models/AuditLog.js';
 import { getLocalDb, saveLocalDb } from '../config/db.js';
@@ -28,6 +29,7 @@ export const getStats = async (req, res, next) => {
     const totalComments = await Comment.countDocuments();
     const totalReports = await Report.countDocuments();
     const pendingReports = await Report.countDocuments({ status: 'pending' });
+    const totalCategories = await Category.countDocuments();
 
     res.json({
       success: true,
@@ -39,6 +41,7 @@ export const getStats = async (req, res, next) => {
         totalComments,
         totalReports,
         pendingReports,
+        totalCategories,
       },
     });
   } catch (error) {
@@ -172,7 +175,7 @@ export const updateUserStatus = async (req, res, next) => {
 // @access  Admin
 export const deleteUser = async (req, res, next) => {
   try {
-    const { userId } = req.params;
+    const userId = req.params.userId || req.params.id;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -305,7 +308,8 @@ export const getReports = async (req, res, next) => {
 export const updateReportStatus = async (req, res, next) => {
   try {
     const { status, resolution_notes } = req.body;
-    const report = await Report.findById(req.params.id);
+    const reportId = req.params.id || req.params.reportId;
+    const report = await Report.findById(reportId);
 
     if (!report) {
       return res.status(404).json({
@@ -315,7 +319,7 @@ export const updateReportStatus = async (req, res, next) => {
     }
 
     const updated = await Report.findByIdAndUpdate(
-      req.params.id,
+      reportId,
       {
         status,
         resolution_notes: resolution_notes || report.resolution_notes,
@@ -327,7 +331,7 @@ export const updateReportStatus = async (req, res, next) => {
       action: 'UPDATE_REPORT_STATUS',
       performed_by: req.user,
       target_type: 'report',
-      target_id: req.params.id,
+      target_id: String(reportId),
       details: `Updated report status to ${status}`,
     });
 
@@ -340,12 +344,48 @@ export const updateReportStatus = async (req, res, next) => {
   }
 };
 
+// @desc    Delete content violation report
+// @route   DELETE /api/admin/reports/:id
+// @access  Admin
+export const deleteReport = async (req, res, next) => {
+  try {
+    const reportId = req.params.id || req.params.reportId;
+    const report = await Report.findById(reportId);
+
+    if (!report) {
+      return res.status(404).json({
+        success: false,
+        message: 'Report not found',
+      });
+    }
+
+    await Report.findByIdAndDelete(reportId);
+
+    await AuditLog.create({
+      action: 'DELETE_REPORT',
+      performed_by: req.user,
+      target_type: 'report',
+      target_id: String(reportId),
+      details: `Admin deleted report #${reportId} for pin "${report.pin_title || report.pin_id}"`,
+    });
+
+    res.json({
+      success: true,
+      message: 'Report deleted successfully',
+      data: report,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 // @desc    Admin delete pin
 // @route   DELETE /api/admin/pins/:id
 // @access  Admin
 export const deleteAdminPin = async (req, res, next) => {
   try {
-    const pin = await Pin.findById(req.params.id);
+    const pinId = req.params.id || req.params.pinId;
+    const pin = await Pin.findById(pinId);
     if (!pin) {
       return res.status(404).json({
         success: false,
@@ -353,14 +393,17 @@ export const deleteAdminPin = async (req, res, next) => {
       });
     }
 
-    await Pin.findByIdAndDelete(req.params.id);
-    await Comment.deleteMany({ pin_id: req.params.id });
+    await Pin.findByIdAndDelete(pinId);
+    await Comment.deleteMany({ pin_id: pinId });
+    if (Report.deleteMany) {
+      await Report.deleteMany({ pin_id: pinId });
+    }
 
     await AuditLog.create({
       action: 'ADMIN_DELETE_PIN',
       performed_by: req.user,
       target_type: 'pin',
-      target_id: req.params.id,
+      target_id: String(pinId),
       details: `Admin removed pin "${pin.title}"`,
     });
 
@@ -486,6 +529,7 @@ export default {
   createUser,
   getReports,
   updateReportStatus,
+  deleteReport,
   deleteAdminPin,
   getSettings,
   updateSettings,

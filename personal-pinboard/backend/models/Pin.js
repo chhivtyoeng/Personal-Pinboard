@@ -122,7 +122,9 @@ export const Pin = {
 
   async findById(id) {
     if (isPostgresConnected && pool) {
-      const res = await pool.query('SELECT * FROM pins WHERE id = $1', [Number(id) || id]);
+      const numId = Number(id);
+      if (isNaN(numId)) return null;
+      const res = await pool.query('SELECT * FROM pins WHERE id = $1', [numId]);
       if (!res.rows[0]) return null;
       const row = res.rows[0];
       return {
@@ -284,7 +286,9 @@ export const Pin = {
 
   async findByIdAndDelete(id) {
     if (isPostgresConnected && pool) {
-      const res = await pool.query('DELETE FROM pins WHERE id = $1 RETURNING *', [Number(id) || id]);
+      const numId = Number(id);
+      if (isNaN(numId)) return null;
+      const res = await pool.query('DELETE FROM pins WHERE id = $1 RETURNING *', [numId]);
       return res.rows[0] || null;
     }
 

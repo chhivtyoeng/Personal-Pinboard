@@ -141,7 +141,8 @@ export const updateCategory = async (req, res, next) => {
 // @access  Private (Admin or Owner)
 export const deleteCategory = async (req, res, next) => {
   try {
-    const category = await Category.findById(req.params.id);
+    const catId = req.params.id || req.params.categoryId;
+    const category = await Category.findById(catId);
     if (!category) {
       return res.status(404).json({
         success: false,
@@ -149,7 +150,7 @@ export const deleteCategory = async (req, res, next) => {
       });
     }
 
-    await Category.findByIdAndDelete(req.params.id);
+    await Category.findByIdAndDelete(catId);
 
     res.json({
       success: true,

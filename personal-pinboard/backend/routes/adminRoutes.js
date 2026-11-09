@@ -8,6 +8,7 @@ import {
   deleteUser,
   getReports,
   updateReportStatus,
+  deleteReport,
   deleteAdminPin,
   getSettings,
   updateSettings,
@@ -15,6 +16,7 @@ import {
   clearAuditLogs,
   resetDemoData,
 } from '../controllers/adminController.js';
+import { deleteCategory } from '../controllers/categoryController.js';
 import protect from '../middleware/authMiddleware.js';
 import adminOnly from '../middleware/adminMiddleware.js';
 
@@ -32,14 +34,22 @@ router.route('/users')
 router.put('/users/:userId/role', updateUserRole);
 router.put('/users/:userId/status', updateUserStatus);
 router.delete('/users/:userId', deleteUser);
+router.delete('/users/:id', deleteUser);
 
 // Pins moderation
 router.delete('/pins/:id', deleteAdminPin);
+router.delete('/pins/:pinId', deleteAdminPin);
+
+// Categories moderation
+router.delete('/categories/:id', deleteCategory);
+router.delete('/categories/:categoryId', deleteCategory);
 
 // Reports
 router.get('/reports', getReports);
 router.put('/reports/:id/status', updateReportStatus);
 router.put('/reports/:id', updateReportStatus);
+router.delete('/reports/:id', deleteReport);
+router.delete('/reports/:reportId', deleteReport);
 
 router.route('/settings')
   .get(getSettings)

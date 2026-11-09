@@ -48,7 +48,9 @@ export const User = {
 
   async findById(id) {
     if (isPostgresConnected && pool) {
-      const res = await pool.query('SELECT * FROM users WHERE id = $1', [Number(id) || id]);
+      const numId = Number(id);
+      if (isNaN(numId)) return null;
+      const res = await pool.query('SELECT * FROM users WHERE id = $1', [numId]);
       return res.rows[0] || null;
     }
     const db = getLocalDb();
@@ -161,10 +163,12 @@ export const User = {
 
   async findByIdAndDelete(id) {
     if (isPostgresConnected && pool) {
-      await pool.query('DELETE FROM pins WHERE user_id = $1', [Number(id) || id]);
-      await pool.query('DELETE FROM boards WHERE user_id = $1', [Number(id) || id]);
-      await pool.query('DELETE FROM comments WHERE user_id = $1', [Number(id) || id]);
-      const res = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [Number(id) || id]);
+      const numId = Number(id);
+      if (isNaN(numId)) return null;
+      await pool.query('DELETE FROM pins WHERE user_id = $1', [numId]);
+      await pool.query('DELETE FROM boards WHERE user_id = $1', [numId]);
+      await pool.query('DELETE FROM comments WHERE user_id = $1', [numId]);
+      const res = await pool.query('DELETE FROM users WHERE id = $1 RETURNING *', [numId]);
       return res.rows[0] || null;
     }
 

@@ -7,11 +7,13 @@ import { useSettings } from '../../context/SettingsContext';
 export default function ReportTable({
   reports = [],
   onStatusUpdate,
+  onDeleteReport,
   onDeleteReportedContent,
 }) {
   const [inspectReport, setInspectReport] = useState(null);
   const { settings } = useSettings();
   const threshold = settings?.require_moderation_threshold || 3;
+  const handleDelete = onDeleteReport || onDeleteReportedContent;
 
   const pinReportCounts = reports.reduce((acc, r) => {
     acc[r.pin_id] = (acc[r.pin_id] || 0) + 1;
@@ -137,7 +139,7 @@ export default function ReportTable({
 
               <button
                 type="button"
-                onClick={() => onDeleteReportedContent(report)}
+                onClick={() => handleDelete?.(report)}
                 className="flex items-center justify-center gap-1 py-2 px-2 rounded-xl bg-red-50 text-red-600 dark:bg-red-950/40 dark:text-red-400 border border-red-200/80 dark:border-red-900/60 text-[11px] font-bold active:scale-95 transition-all cursor-pointer"
               >
                 <IconTrash size={13} />
@@ -254,13 +256,13 @@ export default function ReportTable({
                         </Button>
                       )}
 
-                      <Tooltip label="Delete Reported Pin" withArrow>
+                      <Tooltip label="Delete Safety Report" withArrow>
                         <ActionIcon
                           variant="subtle"
                           color="red"
                           size="sm"
                           radius="xl"
-                          onClick={() => onDeleteReportedContent(report)}
+                          onClick={() => handleDelete?.(report)}
                         >
                           <IconTrash size={15} />
                         </ActionIcon>
@@ -324,10 +326,10 @@ export default function ReportTable({
                 onClick={() => {
                   const target = inspectReport;
                   setInspectReport(null);
-                  onDeleteReportedContent(target);
+                  handleDelete?.(target);
                 }}
               >
-                Delete Content
+                Delete Report
               </Button>
               <div className="flex gap-2">
                 <Button
