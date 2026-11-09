@@ -51,7 +51,7 @@ function notify() {
   }
 }
 
-const PURGE_ORPHANED_DATA_KEY = 'pinboard_purged_test_activity_v10';
+const PURGE_ORPHANED_DATA_KEY = 'pinboard_purged_test_activity_v11';
 if (typeof window !== 'undefined' && localStorage.getItem(PURGE_ORPHANED_DATA_KEY) !== 'true') {
   localStorage.setItem(PURGE_ORPHANED_DATA_KEY, 'true');
   save(KEYS.PINS, []);
@@ -60,19 +60,23 @@ if (typeof window !== 'undefined' && localStorage.getItem(PURGE_ORPHANED_DATA_KE
   save(KEYS.REPORTS, []);
   save(KEYS.USERS, MOCK_USERS);
   try {
-    localStorage.removeItem('pinboard_pins_v3');
-    localStorage.removeItem('pinboard_users_v3');
-    localStorage.removeItem('pinboard_boards_v3');
-    localStorage.removeItem('pinboard_comments_v3');
+    localStorage.removeItem('pinboard_pins_v2');
+    localStorage.removeItem('pinboard_users_v2');
+    localStorage.removeItem('pinboard_boards_v2');
+    localStorage.removeItem('pinboard_comments_v2');
+    localStorage.removeItem('pinboard_pins');
+    localStorage.removeItem('pinboard_users');
+    localStorage.removeItem('pinboard_boards');
+    localStorage.removeItem('pinboard_comments');
   } catch (_) {}
 }
 
 class AppStore {
   constructor() {
     const loadedUsers = load(KEYS.USERS, MOCK_USERS);
-    // Sanitize users: keep only legitimate accounts, filter out tytytest1 or testtyty2.com
+    // Sanitize users: keep only admin accounts, purge any orphaned test accounts
     const sanitizedUsers = (Array.isArray(loadedUsers) && loadedUsers.length > 0)
-      ? loadedUsers.filter((u) => u.username !== 'tytytest1' && u.username !== 'testtyty2.com')
+      ? loadedUsers.filter((u) => u.role === 'admin' || u.username === 'admin')
       : [...MOCK_USERS];
     this.users = sanitizedUsers.length > 0 ? sanitizedUsers : [...MOCK_USERS];
     save(KEYS.USERS, this.users);
@@ -86,13 +90,17 @@ class AppStore {
 
     const loadedCats = load(KEYS.CATEGORIES, null);
     this.categories = Array.isArray(loadedCats) ? loadedCats : [...MOCK_CATEGORIES];
-    const loadedBoards = load(KEYS.BOARDS, null);
-    this.boards = Array.isArray(loadedBoards) ? loadedBoards : [...MOCK_BOARDS];
-    const loadedComments = load(KEYS.COMMENTS, null);
-    this.comments = Array.isArray(loadedComments) ? loadedComments : [...MOCK_COMMENTS];
+    const loadedBoards = load(KEYS.BOARDS, []);
+    this.boards = Array.isArray(loadedBoards) ? loadedBoards : [];
+    save(KEYS.BOARDS, this.boards);
 
-    const loadedReports = load(KEYS.REPORTS, null);
-    this.reports = Array.isArray(loadedReports) ? loadedReports : [...MOCK_REPORTS];
+    const loadedComments = load(KEYS.COMMENTS, []);
+    this.comments = Array.isArray(loadedComments) ? loadedComments : [];
+    save(KEYS.COMMENTS, this.comments);
+
+    const loadedReports = load(KEYS.REPORTS, []);
+    this.reports = Array.isArray(loadedReports) ? loadedReports : [];
+    save(KEYS.REPORTS, this.reports);
     this.friends = load(KEYS.FRIENDS, []);
     this.notifications = load(KEYS.NOTIFICATIONS, []);
     this.settings = load(KEYS.SETTINGS, MOCK_SETTINGS);

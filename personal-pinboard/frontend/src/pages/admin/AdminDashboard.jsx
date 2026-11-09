@@ -153,7 +153,7 @@ export default function AdminDashboard() {
       if (stats) {
         setStats({
           ...stats,
-          pendingReports: Math.max(0, (stats.pendingReports || 1) - 1),
+          pendingReports: Math.max(0, (stats.pendingReports || 0) - 1),
         });
       }
       toast.success(`Report marked as ${nextStatus}.`);
@@ -182,8 +182,8 @@ export default function AdminDashboard() {
           if (stats) {
             setStats({
               ...stats,
-              totalPins: Math.max(0, (stats.totalPins || 1) - 1),
-              pendingReports: Math.max(0, (stats.pendingReports || 1) - 1),
+              totalPins: Math.max(0, (stats.totalPins || 0) - 1),
+              pendingReports: Math.max(0, (stats.pendingReports || 0) - 1),
             });
           }
           toast.success('Reported pin removed.');
@@ -200,6 +200,9 @@ export default function AdminDashboard() {
   const realTotalPins = stats?.totalPins !== undefined && stats?.totalPins !== null ? stats.totalPins : (pins.length || 0);
   const realTotalUsers = stats?.totalUsers !== undefined && stats?.totalUsers !== null ? stats.totalUsers : (users.length || 0);
   const realActiveUsers = stats?.activeUsers !== undefined && stats?.activeUsers !== null ? stats.activeUsers : (users.filter((u) => u.status === 'active' || !u.status).length || 0);
+  const realActiveCreators = stats?.activeCreators !== undefined && stats?.activeCreators !== null
+    ? stats.activeCreators
+    : (users.filter((u) => u.role !== 'admin' && (u.status === 'active' || !u.status)).length || 0);
   const realTotalBoards = stats?.totalBoards !== undefined && stats?.totalBoards !== null ? stats.totalBoards : 0;
   const realTotalComments = stats?.totalComments !== undefined && stats?.totalComments !== null ? stats.totalComments : 0;
   const pendingReports = reports.filter((r) => r.status === 'pending');
@@ -463,7 +466,7 @@ export default function AdminDashboard() {
             <div>
               <p className="text-[11px] text-slate-400 font-medium mb-0.5">Active Creators</p>
               <p className="text-lg font-bold text-slate-900 dark:text-white">
-                {realActiveUsers}
+                {realActiveCreators}
               </p>
             </div>
             <div>
@@ -704,7 +707,7 @@ export default function AdminDashboard() {
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                Pins ({pins.length})
+                Pins ({realTotalPins})
               </button>
               <button
                 type="button"
@@ -715,7 +718,7 @@ export default function AdminDashboard() {
                     : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
                 }`}
               >
-                Members ({users.length})
+                Members ({realTotalUsers})
               </button>
               {pendingReports.length > 0 && (
                 <button
@@ -816,7 +819,7 @@ export default function AdminDashboard() {
                     to="/admin/pins"
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-rose-400 hover:underline group"
                   >
-                    <span>Manage All Pins ({pins.length})</span>
+                    <span>Manage All Pins ({realTotalPins})</span>
                     <IconArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </div>
@@ -914,7 +917,7 @@ export default function AdminDashboard() {
                     to="/admin/users"
                     className="inline-flex items-center gap-1.5 text-xs font-bold text-brand-600 dark:text-rose-400 hover:underline group"
                   >
-                    <span>View All Members ({users.length})</span>
+                    <span>View All Members ({realTotalUsers})</span>
                     <IconArrowRight size={14} className="transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 </div>

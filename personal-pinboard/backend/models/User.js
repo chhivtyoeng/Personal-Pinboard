@@ -187,9 +187,14 @@ export const User = {
     if (isPostgresConnected && pool) {
       let sql = 'SELECT COUNT(*) FROM users WHERE 1=1';
       const params = [];
+      let idx = 1;
       if (filter.status) {
-        sql += ' AND status = $1';
+        sql += ` AND status = $${idx++}`;
         params.push(filter.status);
+      }
+      if (filter.role) {
+        sql += ` AND role = $${idx++}`;
+        params.push(filter.role);
       }
       const res = await pool.query(sql, params);
       return parseInt(res.rows[0].count, 10);

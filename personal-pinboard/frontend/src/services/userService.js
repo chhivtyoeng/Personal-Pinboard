@@ -74,14 +74,16 @@ export const userService = {
     const comments = appStore.comments || [];
     const reports = appStore.getReports();
     const categories = appStore.getCategories();
+    const boards = appStore.getBoards ? appStore.getBoards() : (appStore.boards || []);
     return {
       totalUsers: users.length,
       totalPins: pins.length,
-      totalBoards: appStore.boards ? appStore.boards.length : MOCK_BOARDS.length,
+      totalBoards: boards.length,
       totalComments: comments.length,
       totalReports: reports.length,
       pendingReports: reports.filter(r => r.status === 'pending').length,
       activeUsers: users.filter(u => u.status === 'active' || !u.status).length,
+      activeCreators: users.filter(u => u.role !== 'admin' && (u.status === 'active' || !u.status)).length,
       totalCategories: categories.length,
     };
   },

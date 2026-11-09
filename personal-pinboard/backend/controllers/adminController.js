@@ -24,6 +24,7 @@ export const getStats = async (req, res, next) => {
   try {
     const totalUsers = await User.countDocuments();
     const activeUsers = await User.countDocuments({ status: 'active' });
+    const activeCreators = await User.countDocuments({ status: 'active', role: 'user' });
     const totalPins = await Pin.countDocuments();
     const totalBoards = await Board.countDocuments();
     const totalComments = await Comment.countDocuments();
@@ -36,6 +37,7 @@ export const getStats = async (req, res, next) => {
       data: {
         totalUsers,
         activeUsers,
+        activeCreators,
         totalPins,
         totalBoards,
         totalComments,

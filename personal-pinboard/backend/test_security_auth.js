@@ -310,6 +310,7 @@ async function runTests() {
     assert(resStats.status === 200, 'Admin stats retrieved successfully (200 OK)');
     assert(typeof resStats.body?.data?.totalCategories === 'number', 'totalCategories is included in stats');
     assert(typeof resStats.body?.data?.totalReports === 'number', 'totalReports is included in stats');
+    assert(typeof resStats.body?.data?.activeCreators === 'number', 'activeCreators is included in stats');
 
     // Teardown / Cleanup: Delete test fixtures so database remains strictly clean
     if (boardId) {

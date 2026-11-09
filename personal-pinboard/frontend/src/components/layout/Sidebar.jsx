@@ -118,26 +118,25 @@ export default function Sidebar({ isOpen, onClose }) {
         reports: allReports.length,
       };
 
-      // Set local store counts immediately for instantaneous UI update
-      if (isMounted) {
-        setCounts(newCounts);
-      }
-
       if (isAdmin) {
         try {
           const stats = await userService.getAdminStats();
           if (stats && isMounted) {
-            setCounts((prev) => ({
-              ...prev,
-              pins: stats.totalPins !== undefined ? stats.totalPins : prev.pins,
-              favorites: prev.favorites,
-              boards: stats.totalBoards !== undefined ? stats.totalBoards : prev.boards,
-              categories: stats.totalCategories !== undefined ? stats.totalCategories : prev.categories,
-              users: stats.totalUsers !== undefined ? stats.totalUsers : prev.users,
-              reports: stats.totalReports !== undefined ? stats.totalReports : prev.reports,
-            }));
+            setCounts({
+              pins: stats.totalPins !== undefined ? stats.totalPins : newCounts.pins,
+              favorites: newCounts.favorites,
+              boards: stats.totalBoards !== undefined ? stats.totalBoards : newCounts.boards,
+              categories: stats.totalCategories !== undefined ? stats.totalCategories : newCounts.categories,
+              users: stats.totalUsers !== undefined ? stats.totalUsers : newCounts.users,
+              reports: stats.totalReports !== undefined ? stats.totalReports : newCounts.reports,
+            });
+            return;
           }
         } catch (_) {}
+      }
+
+      if (isMounted) {
+        setCounts(newCounts);
       }
     };
 

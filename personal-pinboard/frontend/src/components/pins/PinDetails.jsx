@@ -59,8 +59,12 @@ export default function PinDetails({ pin, onDelete, isModal = false, onClose }) 
 
   // Ratings State
   const [userRating, setUserRating] = useState(pin.user_rating || 0);
-  const [ratingAvg, setRatingAvg] = useState(pin.rating_avg || 4.8);
-  const [ratingsCount, setRatingsCount] = useState(pin.ratings_count || 24);
+  const [ratingAvg, setRatingAvg] = useState(
+    pin.rating_avg !== undefined && pin.rating_avg !== null ? Number(pin.rating_avg) : 0
+  );
+  const [ratingsCount, setRatingsCount] = useState(
+    pin.ratings_count !== undefined && pin.ratings_count !== null ? Number(pin.ratings_count) : 0
+  );
   const [isRatingLoading, setIsRatingLoading] = useState(false);
 
   // Comments State
