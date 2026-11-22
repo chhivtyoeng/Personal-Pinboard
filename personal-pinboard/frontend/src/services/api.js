@@ -21,9 +21,21 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// Response interceptor to handle unauthenticated 401s
+// Response interceptor to handle unauthenticated 401s and HTML SPA rewrites
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // If the server returned an HTML SPA page (from a catch-all rewrite), treat it as an unavailable API endpoint
+    if (
+      typeof response.data === 'string' &&
+      (response.data.trim().toLowerCase().startsWith('<!doctype html') ||
+        response.data.trim().toLowerCase().startsWith('<html'))
+    ) {
+      const err = new Error('API route not served by static host');
+      err.isSpaFallback = true;
+      return Promise.reject(err);
+    }
+    return response;
+  },
   (error) => {
     if (error.response && error.response.status === 401) {
       const currentToken = localStorage.getItem('token');

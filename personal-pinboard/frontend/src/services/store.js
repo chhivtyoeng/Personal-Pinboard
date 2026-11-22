@@ -133,7 +133,7 @@ class AppStore {
   }
 
   getPinById(id) {
-    return this.pins.find(p => p.id === Number(id)) || null;
+    return this.pins.find(p => String(p.id) === String(id) || p.id === Number(id)) || null;
   }
 
   addPin(pin) {
@@ -179,7 +179,7 @@ class AppStore {
   }
 
   updatePin(id, updates) {
-    this.pins = this.pins.map(p => p.id === Number(id) ? { ...p, ...updates } : p);
+    this.pins = this.pins.map(p => (String(p.id) === String(id) || p.id === Number(id)) ? { ...p, ...updates } : p);
     save(KEYS.PINS, this.pins);
     notify();
     return this.getPinById(id);

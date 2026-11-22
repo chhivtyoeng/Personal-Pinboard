@@ -1,4 +1,8 @@
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+export const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (typeof window !== 'undefined' && window.location.protocol === 'https:'
+    ? '/api'
+    : 'http://localhost:5000/api');
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'Pinboard';
 
 export const PIN_CATEGORIES_DEFAULT = [
