@@ -33,7 +33,7 @@ export default function PinTable({ pins = [], onDeletePin, onToggleHidePin }) {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between gap-1.5 mb-1">
                   <Badge size="xs" color="gray" variant="light" className="truncate">
-                    {pin.category_name || 'Uncategorized'}
+                    {pin.category_name || pin.category?.name || 'Uncategorized'}
                   </Badge>
                   {pin.is_hidden ? (
                     <Badge size="xs" color="orange" variant="filled">
@@ -68,9 +68,9 @@ export default function PinTable({ pins = [], onDeletePin, onToggleHidePin }) {
             {/* Middle: Author & Stats Info */}
             <div className="flex items-center justify-between pt-2.5 border-t border-slate-100 dark:border-slate-800 text-xs">
               <div className="flex items-center gap-2 min-w-0">
-                <Avatar src={pin.author_avatar} radius="xl" size="xs" />
+                <Avatar src={pin.author_avatar || pin.user?.avatar_url} radius="xl" size="xs" />
                 <span className="font-medium text-slate-700 dark:text-slate-300 truncate">
-                  {pin.author_name || pin.username}
+                  {pin.author_name || pin.user?.full_name || pin.username || pin.user?.username || 'Creator'}
                 </span>
               </div>
               <div className="text-[11px] text-slate-400 dark:text-slate-500 shrink-0">
@@ -160,13 +160,13 @@ export default function PinTable({ pins = [], onDeletePin, onToggleHidePin }) {
                   </Table.Td>
                   <Table.Td className="whitespace-nowrap">
                     <div className="flex items-center gap-2">
-                      <Avatar src={pin.author_avatar} radius="xl" size="xs" />
-                      <Text size="xs" fw={500}>{pin.author_name || pin.username}</Text>
+                      <Avatar src={pin.author_avatar || pin.user?.avatar_url} radius="xl" size="xs" />
+                      <Text size="xs" fw={500}>{pin.author_name || pin.user?.full_name || pin.username || pin.user?.username || 'Creator'}</Text>
                     </div>
                   </Table.Td>
                   <Table.Td className="whitespace-nowrap">
                     <Badge size="xs" color="gray" variant="light">
-                      {pin.category_name || 'Uncategorized'}
+                      {pin.category_name || pin.category?.name || 'Uncategorized'}
                     </Badge>
                   </Table.Td>
                   <Table.Td className="whitespace-nowrap">

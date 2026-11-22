@@ -18,6 +18,7 @@ import {
   IconUsers,
 } from '@tabler/icons-react';
 import TagSelector from '../tags/TagSelector';
+import api from '../../services/api';
 import { categoryService } from '../../services/categoryService';
 import { boardService } from '../../services/boardService';
 import { useAuth } from '../../hooks/useAuth';
@@ -131,15 +132,46 @@ export default function PinForm({
   };
 
   const handleProcessFile = async (file) => {
+    if (!file || !file.type.startsWith('image/')) {
+      setFileError('Please select a valid image file (JPG, PNG, WEBP, GIF).');
+      return;
+    }
+    if (file.size > 15 * 1024 * 1024) {
+      setFileError('File size exceeds the 15MB upload limit.');
+      return;
+    }
+
     setIsProcessingImage(true);
     setFileError('');
+
+    // Instant local preview for smooth UX
     try {
-      const dataUrl = await processPinImageFile(file);
-      setFormData((prev) => ({ ...prev, image_url: dataUrl }));
+      const localPreviewUrl = URL.createObjectURL(file);
+      setFormData((prev) => ({ ...prev, image_url: localPreviewUrl }));
       setImageValid(true);
-      setErrors((prev) => ({ ...prev, image_url: undefined }));
+    } catch (e) {}
+
+    try {
+      const uploadPayload = new FormData();
+      uploadPayload.append('image', file);
+
+      const response = await api.post('/pins/upload', uploadPayload, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      if (response?.data?.data?.url) {
+        setFormData((prev) => ({ ...prev, image_url: response.data.data.url }));
+        setErrors((prev) => ({ ...prev, image_url: undefined }));
+      }
     } catch (err) {
-      setFileError(err.message || 'Failed to process image');
+      console.warn('Server upload failed, falling back to optimized local process:', err);
+      try {
+        const dataUrl = await processPinImageFile(file);
+        setFormData((prev) => ({ ...prev, image_url: dataUrl }));
+        setErrors((prev) => ({ ...prev, image_url: undefined }));
+      } catch (procErr) {
+        setFileError(err.response?.data?.message || err.message || 'Failed to process image');
+      }
     } finally {
       setIsProcessingImage(false);
     }

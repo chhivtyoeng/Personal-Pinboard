@@ -66,7 +66,7 @@ export const Comment = {
       `;
       const params = [
         Number(data.pin_id),
-        Number(data.user_id) || 2,
+        data.user_id ? Number(data.user_id) : null,
         JSON.stringify(data.user || {}),
         data.content || data.text || '',
         data.rating ? Number(data.rating) : null,
@@ -84,7 +84,7 @@ export const Comment = {
     const newComment = {
       id: newId,
       pin_id: data.pin_id,
-      user_id: data.user_id,
+      user_id: data.user_id ? Number(data.user_id) : null,
       user: data.user || null,
       content: data.content || data.text || '',
       rating: data.rating ? Number(data.rating) : null,
@@ -97,15 +97,29 @@ export const Comment = {
   },
 
   async findByIdAndUpdate(id, updates = {}) {
-    if (isPostgresConnected && pool) {
-      const keys = Object.keys(updates);
-      if (keys.length === 0) return await this.findById(id);
+    const ALLOWED_COMMENT_COLUMNS = new Set([
+      'content',
+      'rating',
+      'user_data',
+      'user',
+    ]);
 
+    const sanitizedUpdates = {};
+    for (const [key, val] of Object.entries(updates)) {
+      if (ALLOWED_COMMENT_COLUMNS.has(key)) {
+        sanitizedUpdates[key] = val;
+      }
+    }
+
+    const keys = Object.keys(sanitizedUpdates);
+    if (keys.length === 0) return await this.findById(id);
+
+    if (isPostgresConnected && pool) {
       const setClauses = [];
       const params = [];
       let idx = 1;
 
-      for (const [key, val] of Object.entries(updates)) {
+      for (const [key, val] of Object.entries(sanitizedUpdates)) {
         if (key === 'user' || key === 'user_data') {
           setClauses.push(`user_data = $${idx++}`);
           params.push(JSON.stringify(val));
@@ -132,7 +146,7 @@ export const Comment = {
 
     db.comments[index] = {
       ...db.comments[index],
-      ...updates,
+      ...sanitizedUpdates,
       updated_at: new Date().toISOString(),
     };
     saveLocalDb();

@@ -38,6 +38,11 @@ export const Pin = {
         sql += ' AND is_private = true';
       } else if (params.privacy === 'public') {
         sql += ' AND is_private = false';
+      } else if (params.viewerId) {
+        sql += ` AND (is_private = false OR user_id = $${paramIdx++})`;
+        sqlParams.push(Number(params.viewerId));
+      } else if (!params.userId && !params.user_id) {
+        sql += ' AND is_private = false';
       }
 
       const likedBy = params.likedByUserId || params.liked_by_user_id;
@@ -87,6 +92,10 @@ export const Pin = {
     if (params.privacy === 'private') {
       result = result.filter((p) => p.is_private);
     } else if (params.privacy === 'public') {
+      result = result.filter((p) => !p.is_private);
+    } else if (params.viewerId) {
+      result = result.filter((p) => !p.is_private || String(p.user_id) === String(params.viewerId));
+    } else if (!params.userId && !params.user_id) {
       result = result.filter((p) => !p.is_private);
     }
     const fallbackCatId = params.categoryId || params.category_id;
@@ -166,7 +175,7 @@ export const Pin = {
         data.description || '',
         data.image_url,
         data.destination_url || '',
-        Number(data.user_id) || 2,
+        data.user_id ? Number(data.user_id) : null,
         JSON.stringify(data.user || {}),
         data.board_id ? Number(data.board_id) : null,
         data.board_name || '',
@@ -204,7 +213,7 @@ export const Pin = {
       description: data.description || '',
       image_url: data.image_url,
       destination_url: data.destination_url || '',
-      user_id: data.user_id,
+      user_id: data.user_id ? Number(data.user_id) : null,
       user: data.user || null,
       board_id: data.board_id ? Number(data.board_id) : null,
       board_name: data.board_name || '',
@@ -231,15 +240,48 @@ export const Pin = {
   },
 
   async findByIdAndUpdate(id, updates = {}) {
-    if (isPostgresConnected && pool) {
-      const keys = Object.keys(updates);
-      if (keys.length === 0) return await this.findById(id);
+    const ALLOWED_PIN_COLUMNS = new Set([
+      'title',
+      'description',
+      'image_url',
+      'destination_url',
+      'board_id',
+      'board_name',
+      'category_id',
+      'category_data',
+      'category',
+      'tags',
+      'type',
+      'is_private',
+      'is_hidden',
+      'likes_count',
+      'liked_by',
+      'views_count',
+      'rating_avg',
+      'rating_count',
+      'ratings_count',
+      'ratings',
+      'comments_count',
+      'user_data',
+      'user',
+    ]);
 
+    const sanitizedUpdates = {};
+    for (const [key, val] of Object.entries(updates)) {
+      if (ALLOWED_PIN_COLUMNS.has(key)) {
+        sanitizedUpdates[key] = val;
+      }
+    }
+
+    const keys = Object.keys(sanitizedUpdates);
+    if (keys.length === 0) return await this.findById(id);
+
+    if (isPostgresConnected && pool) {
       const setClauses = [];
       const params = [];
       let idx = 1;
 
-      for (const [key, val] of Object.entries(updates)) {
+      for (const [key, val] of Object.entries(sanitizedUpdates)) {
         if (key === 'user' || key === 'user_data') {
           setClauses.push(`user_data = $${idx++}`);
           params.push(JSON.stringify(val));
@@ -277,11 +319,81 @@ export const Pin = {
 
     db.pins[index] = {
       ...db.pins[index],
-      ...updates,
+      ...sanitizedUpdates,
       updated_at: new Date().toISOString(),
     };
     saveLocalDb();
     return db.pins[index];
+  },
+
+  async incrementViews(id) {
+    if (isPostgresConnected && pool) {
+      const numId = Number(id);
+      if (isNaN(numId)) return 1;
+      const res = await pool.query(
+        'UPDATE pins SET views_count = COALESCE(views_count, 0) + 1 WHERE id = $1 RETURNING views_count',
+        [numId]
+      );
+      return res.rows[0]?.views_count || 1;
+    }
+    const db = getLocalDb();
+    const pin = db.pins.find((p) => String(p.id) === String(id));
+    if (pin) {
+      pin.views_count = (pin.views_count || 0) + 1;
+      saveLocalDb();
+      return pin.views_count;
+    }
+    return 1;
+  },
+
+  async toggleLikePin(pinId, userId) {
+    if (isPostgresConnected && pool) {
+      const numId = Number(pinId);
+      if (isNaN(numId)) return null;
+      const pinRes = await pool.query('SELECT liked_by, likes_count FROM pins WHERE id = $1', [numId]);
+      if (!pinRes.rows[0]) return null;
+      let likedBy = Array.isArray(pinRes.rows[0].liked_by)
+        ? pinRes.rows[0].liked_by
+        : JSON.parse(pinRes.rows[0].liked_by || '[]');
+      const alreadyLiked = likedBy.some((uid) => String(uid) === String(userId));
+      let newLikesCount;
+      if (alreadyLiked) {
+        likedBy = likedBy.filter((uid) => String(uid) !== String(userId));
+        newLikesCount = Math.max(0, (pinRes.rows[0].likes_count || 1) - 1);
+      } else {
+        likedBy.push(Number(userId) || userId);
+        newLikesCount = (pinRes.rows[0].likes_count || 0) + 1;
+      }
+      const updateRes = await pool.query(
+        'UPDATE pins SET liked_by = $1, likes_count = $2 WHERE id = $3 RETURNING *',
+        [JSON.stringify(likedBy), newLikesCount, numId]
+      );
+      const row = updateRes.rows[0];
+      return {
+        ...row,
+        liked_by: likedBy,
+        likes_count: newLikesCount,
+        is_liked: !alreadyLiked,
+      };
+    }
+    const db = getLocalDb();
+    const pin = db.pins.find((p) => String(p.id) === String(pinId));
+    if (!pin) return null;
+    let likedBy = Array.isArray(pin.liked_by) ? [...pin.liked_by] : [];
+    const alreadyLiked = likedBy.some((uid) => String(uid) === String(userId));
+    if (alreadyLiked) {
+      pin.liked_by = likedBy.filter((uid) => String(uid) !== String(userId));
+      pin.likes_count = Math.max(0, (pin.likes_count || 1) - 1);
+    } else {
+      likedBy.push(userId);
+      pin.liked_by = likedBy;
+      pin.likes_count = (pin.likes_count || 0) + 1;
+    }
+    saveLocalDb();
+    return {
+      ...pin,
+      is_liked: !alreadyLiked,
+    };
   },
 
   async findByIdAndDelete(id) {

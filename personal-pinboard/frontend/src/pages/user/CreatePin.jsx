@@ -10,15 +10,8 @@ import { toast } from '../../context/ToastContext';
 
 export default function CreatePin() {
   const navigate = useNavigate();
-  const { isAdmin } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-
-  useEffect(() => {
-    if (isAdmin) {
-      navigate('/admin/pins', { replace: true });
-    }
-  }, [isAdmin, navigate]);
 
   const handleCreate = async (formData) => {
     setLoading(true);

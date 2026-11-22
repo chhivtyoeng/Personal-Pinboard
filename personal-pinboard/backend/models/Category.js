@@ -116,15 +116,32 @@ export const Category = {
   },
 
   async findByIdAndUpdate(id, updates = {}) {
-    if (isPostgresConnected && pool) {
-      const keys = Object.keys(updates);
-      if (keys.length === 0) return await this.findById(id);
+    const ALLOWED_CATEGORY_COLUMNS = new Set([
+      'name',
+      'slug',
+      'description',
+      'image_url',
+      'pins_count',
+      'type',
+      'members',
+    ]);
 
+    const sanitizedUpdates = {};
+    for (const [key, val] of Object.entries(updates)) {
+      if (ALLOWED_CATEGORY_COLUMNS.has(key)) {
+        sanitizedUpdates[key] = val;
+      }
+    }
+
+    const keys = Object.keys(sanitizedUpdates);
+    if (keys.length === 0) return await this.findById(id);
+
+    if (isPostgresConnected && pool) {
       const setClauses = [];
       const params = [];
       let idx = 1;
 
-      for (const [key, val] of Object.entries(updates)) {
+      for (const [key, val] of Object.entries(sanitizedUpdates)) {
         if (key === 'members') {
           setClauses.push(`members = $${idx++}`);
           params.push(JSON.stringify(val));
@@ -151,7 +168,7 @@ export const Category = {
 
     db.categories[index] = {
       ...db.categories[index],
-      ...updates,
+      ...sanitizedUpdates,
       updated_at: new Date().toISOString(),
     };
     saveLocalDb();

@@ -46,6 +46,8 @@ export default function Users() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmTitle, setConfirmTitle] = useState('');
   const [confirmMessage, setConfirmMessage] = useState('');
+  const [confirmLabel, setConfirmLabel] = useState('Confirm');
+  const [confirmColor, setConfirmColor] = useState('red');
   const [confirmAction, setConfirmAction] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
 
@@ -54,7 +56,7 @@ export default function Users() {
   const [creating, setCreating] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newFullName, setNewFullName] = useState('');
-  const [newEmail, setNewEmail] = useState('chhivtyy16@gmail.com');
+  const [newEmail, setNewEmail] = useState('');
   const [newRole, setNewRole] = useState('user');
   const [newBio, setNewBio] = useState('');
 
@@ -103,6 +105,8 @@ export default function Users() {
         ? `Are you sure you want to suspend @${targetUser?.username}? They will not be able to publish pins or comments.`
         : `Activate account for @${targetUser?.username}?`
     );
+    setConfirmLabel(newStatus === 'suspended' ? 'Suspend User' : 'Activate User');
+    setConfirmColor(newStatus === 'suspended' ? 'orange' : 'teal');
     setConfirmAction(() => async () => {
       setActionLoading(true);
       try {
@@ -126,6 +130,8 @@ export default function Users() {
     setConfirmMessage(
       `Are you sure you want to permanently delete @${user.username} and all their saved boards and pins? This action cannot be undone.`
     );
+    setConfirmLabel('Delete Account');
+    setConfirmColor('red');
     setConfirmAction(() => async () => {
       setActionLoading(true);
       try {
@@ -144,13 +150,20 @@ export default function Users() {
 
   const handleCreateUserSubmit = async (e) => {
     e.preventDefault();
-    if (!newUsername.trim()) return;
+    if (!newUsername.trim()) {
+      toast.error('Username is required.');
+      return;
+    }
+    if (!newEmail.trim()) {
+      toast.error('Email address is required.');
+      return;
+    }
     setCreating(true);
     try {
       const created = await userService.createUser({
         username: newUsername.trim(),
         full_name: newFullName.trim() || newUsername.trim(),
-        email: newEmail.trim() || 'chhivtyy16@gmail.com',
+        email: newEmail.trim(),
         role: newRole,
         bio: newBio.trim(),
       });
@@ -158,6 +171,7 @@ export default function Users() {
       setCreateModalOpen(false);
       setNewUsername('');
       setNewFullName('');
+      setNewEmail('');
       setNewBio('');
       toast.success(`User @${created.username} created successfully.`);
     } catch (err) {
@@ -409,6 +423,8 @@ export default function Users() {
         onConfirm={confirmAction}
         title={confirmTitle}
         message={confirmMessage}
+        confirmLabel={confirmLabel}
+        confirmColor={confirmColor}
         loading={actionLoading}
       />
     </div>

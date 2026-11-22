@@ -15,7 +15,8 @@ import {
   handleImageUpload,
 } from '../controllers/pinController.js';
 import { protect, optionalProtect } from '../middleware/authMiddleware.js';
-import { uploadPinImage } from '../middleware/uploadMiddleware.js';
+import { uploadPinImage, validateImageMagicBytes } from '../middleware/uploadMiddleware.js';
+import { reportLimiter } from '../middleware/rateLimitMiddleware.js';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.route('/')
   .get(optionalProtect, getAllPins)
   .post(protect, createPin);
 
-router.post('/upload', uploadPinImage.single('image'), handleImageUpload);
+router.post('/upload', protect, uploadPinImage.single('image'), validateImageMagicBytes, handleImageUpload);
 
 router.route('/:id')
   .get(optionalProtect, getPinById)
@@ -41,6 +42,6 @@ router.route('/:id/comments/:commentId')
   .put(protect, updateComment)
   .delete(protect, deleteComment);
 
-router.post('/:id/report', protect, reportPin);
+router.post('/:id/report', protect, reportLimiter, reportPin);
 
 export default router;

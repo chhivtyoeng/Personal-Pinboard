@@ -78,45 +78,12 @@ export const pinService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    const allBoards = appStore.getBoards() || [];
-    const allCategories = appStore.getCategories() || [];
-    const matchedBoard = data.board_id ? allBoards.find(b => b.id === Number(data.board_id)) : null;
-    const matchedCategory = data.category_id ? allCategories.find(c => c.id === Number(data.category_id)) : null;
-
-    let currentUser = null;
-    try {
-      const saved = localStorage.getItem('user');
-      if (saved) currentUser = JSON.parse(saved);
-    } catch (e) {}
-
-    const newPin = {
-      id: Date.now(),
-      user_id: currentUser?.id || 2,
-      username: currentUser?.username || 'explorer',
-      author_name: currentUser?.full_name || 'Pinboard Explorer',
-      author_avatar: currentUser?.avatar_url || null,
-      title: data.title,
-      description: data.description || '',
-      image_url: data.image_url,
-      destination_url: data.destination_url || '',
-      board_id: data.board_id ? Number(data.board_id) : null,
-      board_name: matchedBoard ? matchedBoard.name : (data.board_name || ''),
-      category_id: data.category_id ? Number(data.category_id) : null,
-      category_name: matchedCategory ? matchedCategory.name : (data.category_name || ''),
-      tags: data.tags || [],
-      likes_count: 0,
-      views_count: 0,
-      rating_avg: 5.0,
-      ratings_count: 0,
-      comments_count: 0,
-      user_rating: null,
-      is_liked: false,
-      created_at: new Date().toISOString(),
-    };
-    return appStore.addPin(newPin);
+    throw new Error('Failed to create pin');
   },
 
   async updatePin(id, data) {
@@ -127,20 +94,25 @@ export const pinService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.updatePin(id, data);
+    throw new Error('Failed to update pin');
   },
 
   async deletePin(id) {
     try {
       await api.delete(`/pins/${id}`);
+      appStore.deletePin(id);
+      return { success: true };
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-    appStore.deletePin(id);
-    return { success: true };
   },
 
   async toggleLike(id) {
@@ -151,10 +123,12 @@ export const pinService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.toggleLike(id);
+    throw new Error('Failed to toggle like');
   },
 
   async ratePin(id, score, userId = 2) {
@@ -165,10 +139,12 @@ export const pinService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.ratePin(id, userId, score);
+    throw new Error('Failed to submit rating');
   },
 
   async getComments(id) {
@@ -192,17 +168,12 @@ export const pinService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.addComment(id, {
-      user_id: user?.id || 2,
-      username: user?.username || 'explorer',
-      user_name: user?.full_name || 'Pinboard Explorer',
-      user_avatar: user?.avatar_url || null,
-      content,
-      rating,
-    });
+    throw new Error('Failed to post comment');
   },
 
   async updateComment(id, commentId, { content }) {
@@ -212,21 +183,25 @@ export const pinService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.updateComment(commentId, content);
+    throw new Error('Failed to update comment');
   },
 
   async deleteComment(id, commentId) {
     try {
       await api.delete(`/pins/${id}/comments/${commentId}`);
+      appStore.deleteComment(commentId);
+      return { success: true };
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    appStore.deleteComment(commentId);
-    return { success: true };
   },
 
   async reportPin(id, data, user) {
@@ -236,17 +211,12 @@ export const pinService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.addReport({
-      pin_id: id,
-      reporter_id: user?.id || 2,
-      reporter_username: user?.username || 'explorer',
-      reporter_email: user?.email || 'explorer@pinboard.local',
-      reason: data.reason,
-      details: data.details,
-    });
+    throw new Error('Failed to submit report');
   },
 
   recordPinView(id) {

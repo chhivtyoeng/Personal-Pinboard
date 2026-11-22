@@ -250,6 +250,27 @@ async function runTests() {
     assert(resPinUpdate.status === 200, 'Pin update succeeds');
     assert(resPinUpdate.body?.data?.title === 'Updated Title', 'Title was updated');
     assert(resPinUpdate.body?.data?.likes_count !== 99999, 'Mass assignment blocked: likes_count injection rejected');
+    assert(typeof resPinUpdate.body?.data?.author_name === 'string', 'Pin includes enriched author_name');
+    assert(typeof resPinUpdate.body?.data?.category_name === 'string', 'Pin includes enriched category_name');
+
+    // Regular user cannot hide pin from public feed
+    const resUserHide = await request('PUT', `/api/pins/${pinId}`, { is_hidden: true }, userToken);
+    assert(resUserHide.status === 200, 'User update call returned 200');
+    assert(Boolean(resUserHide.body?.data?.is_hidden) === false, 'Non-admin cannot manipulate is_hidden status');
+
+    // Admin can hide pin from public feed
+    const resAdminHide = await request('PUT', `/api/pins/${pinId}`, { is_hidden: true }, adminToken);
+    assert(resAdminHide.status === 200, 'Admin can update pin moderation state');
+    assert(Boolean(resAdminHide.body?.data?.is_hidden) === true, 'Admin successfully hid pin from feed');
+
+    // Verify hidden pin does not appear in public feed
+    const resFeedCheck = await request('GET', '/api/pins');
+    const isLeaked = (resFeedCheck.body?.data || []).some((p) => String(p.id) === String(pinId));
+    assert(!isLeaked, 'Hidden pin is excluded from public discovery feed');
+
+    // Admin unhides / restores pin
+    const resAdminRestore = await request('PUT', `/api/pins/${pinId}`, { is_hidden: false }, adminToken);
+    assert(Boolean(resAdminRestore.body?.data?.is_hidden) === false, 'Admin restored pin to public feed');
 
     // Test 20: Regular user cannot delete global category
     const res20 = await request('DELETE', '/api/categories/1', null, userToken);
@@ -311,6 +332,73 @@ async function runTests() {
     assert(typeof resStats.body?.data?.totalCategories === 'number', 'totalCategories is included in stats');
     assert(typeof resStats.body?.data?.totalReports === 'number', 'totalReports is included in stats');
     assert(typeof resStats.body?.data?.activeCreators === 'number', 'activeCreators is included in stats');
+
+    // Test 30: OTP login bypass attempt without code must be rejected with 400 Bad Request
+    const resOtpBypass = await request('POST', '/api/auth/otp-login', { email: 'user@pinboard.dev' });
+    assert(resOtpBypass.status === 400, 'OTP login without code rejected with 400 Bad Request');
+
+    // Test 31: OTP login with invalid code must be rejected with 400 Bad Request
+    const resOtpInvalid = await request('POST', '/api/auth/otp-login', {
+      email: 'user@pinboard.dev',
+      code: '000000',
+    });
+    assert(resOtpInvalid.status === 400, 'OTP login with invalid code rejected with 400 Bad Request');
+
+    // Test 32: OTP request and login flow with valid verification code
+    const otpEmail = `test_otp_${Date.now()}@pinboard.dev`;
+    const resOtpReq = await request('POST', '/api/auth/otp-request', { email: otpEmail });
+    assert(resOtpReq.status === 200, 'OTP code requested successfully');
+    const devOtpCode = resOtpReq.body?.data?.dev_code;
+    assert(Boolean(devOtpCode), 'Dev OTP verification code returned');
+
+    const resOtpLogin = await request('POST', '/api/auth/otp-login', {
+      email: otpEmail,
+      code: devOtpCode,
+      fullName: 'OTP Verified User',
+    });
+    assert(resOtpLogin.status === 200, 'OTP login with valid code succeeds (200 OK)');
+    assert(Boolean(resOtpLogin.body?.data?.token), 'JWT issued upon verified OTP login');
+    const otpUserId = resOtpLogin.body?.data?.user?.id;
+
+    // Test 33: Upload endpoint without authentication must return 401 Unauthorized
+    const resUploadNoAuth = await request('POST', '/api/pins/upload', {});
+    assert(resUploadNoAuth.status === 401, 'Unauthenticated upload rejected with 401 Unauthorized');
+
+    // Test 34: Private pin privacy guard — unauthenticated guest cannot access private pin
+    const resPrivatePin = await request(
+      'POST',
+      '/api/pins',
+      {
+        title: 'Secret Private Pin',
+        description: 'Classified visual asset',
+        image_url: 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=800',
+        is_private: true,
+      },
+      userToken
+    );
+    assert(resPrivatePin.status === 201, 'User created a private pin (201 Created)');
+    const privatePinId = resPrivatePin.body?.data?.id;
+
+    const resGuestGetPrivate = await request('GET', `/api/pins/${privatePinId}`);
+    assert(resGuestGetPrivate.status === 403, 'Guest viewing private pin rejected with 403 Forbidden');
+
+    const resOwnerGetPrivate = await request('GET', `/api/pins/${privatePinId}`, null, userToken);
+    assert(resOwnerGetPrivate.status === 200, 'Owner can access their own private pin (200 OK)');
+
+    // Test 35: Public feed (/api/pins) hides private pins from guests
+    const resPublicFeed = await request('GET', '/api/pins');
+    assert(resPublicFeed.status === 200, 'Public feed retrieved successfully');
+    const feedPins = resPublicFeed.body?.data || [];
+    const hasSecretPin = feedPins.some((p) => String(p.id) === String(privatePinId));
+    assert(!hasSecretPin, 'Private pin is not leaked in public feed');
+
+    // Clean up private pin
+    if (privatePinId) {
+      await request('DELETE', `/api/pins/${privatePinId}`, null, userToken);
+    }
+    if (otpUserId) {
+      await request('DELETE', `/api/admin/users/${otpUserId}`, null, adminToken);
+    }
 
     // Teardown / Cleanup: Delete test fixtures so database remains strictly clean
     if (boardId) {

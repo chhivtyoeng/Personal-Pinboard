@@ -25,13 +25,29 @@ export const Setting = {
   },
 
   async updateSettings(data) {
+    const ALLOWED_SETTING_COLUMNS = new Set([
+      'platform_name',
+      'allow_registration',
+      'enable_comments',
+      'enable_ratings',
+      'require_moderation_threshold',
+      'maintenance_mode',
+    ]);
+
+    const sanitizedData = {};
+    for (const [key, val] of Object.entries(data)) {
+      if (ALLOWED_SETTING_COLUMNS.has(key)) {
+        sanitizedData[key] = val;
+      }
+    }
+
     if (isPostgresConnected && pool) {
       const current = await this.getSettings();
-      const keys = Object.keys(data);
+      const keys = Object.keys(sanitizedData);
       if (keys.length === 0) return current;
 
       const setClauses = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
-      const params = [...Object.values(data), current.id];
+      const params = [...Object.values(sanitizedData), current.id];
 
       const sql = `UPDATE settings SET ${setClauses}, updated_at = NOW() WHERE id = $${keys.length + 1} RETURNING *`;
       const res = await pool.query(sql, params);
@@ -41,7 +57,7 @@ export const Setting = {
     const db = getLocalDb();
     db.settings = {
       ...(db.settings || SEED_SETTINGS),
-      ...data,
+      ...sanitizedData,
       updated_at: new Date().toISOString(),
     };
     saveLocalDb();

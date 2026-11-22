@@ -309,8 +309,8 @@ export const savePinToBoard = async (req, res, next) => {
       { new: true }
     );
 
-    // Also update pin's board_id if unassigned
-    if (!pin.board_id) {
+    // Only update pin's primary board_id if unassigned AND the saving user is the original creator
+    if (!pin.board_id && String(pin.user_id) === String(currentUserId)) {
       await Pin.findByIdAndUpdate(pin_id, {
         board_id: Number(boardId),
         board_name: board.name,

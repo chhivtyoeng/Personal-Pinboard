@@ -5,25 +5,73 @@ import Comment from '../models/Comment.js';
 import Report from '../models/Report.js';
 import User from '../models/User.js';
 
+// Helper to enrich pin objects with computed fields, likes status, and top-level user/category metadata
+export const enrichPinObject = (pin, currentUserId = null) => {
+  if (!pin) return null;
+  const pinObj = pin.toObject ? pin.toObject() : { ...pin };
+  const isLiked = currentUserId && Array.isArray(pinObj.liked_by)
+    ? pinObj.liked_by.some((uid) => String(uid) === String(currentUserId))
+    : Boolean(pinObj.is_liked);
+
+  const categoryName =
+    pinObj.category?.name ||
+    pinObj.category_name ||
+    (typeof pinObj.category === 'string' ? pinObj.category : '') ||
+    'Uncategorized';
+
+  const authorName =
+    pinObj.user?.full_name ||
+    pinObj.user?.username ||
+    pinObj.author_name ||
+    pinObj.username ||
+    'Creator';
+
+  const authorAvatar =
+    pinObj.user?.avatar_url ||
+    pinObj.author_avatar ||
+    null;
+
+  const username =
+    pinObj.user?.username ||
+    pinObj.username ||
+    'user';
+
+  return {
+    ...pinObj,
+    is_liked: isLiked,
+    category_name: categoryName,
+    author_name: authorName,
+    author_avatar: authorAvatar,
+    username: username,
+  };
+};
+
 // @desc    Get all pins with filtering and sorting
 // @route   GET /api/pins
 // @access  Public / Optional Auth
 export const getAllPins = async (req, res, next) => {
   try {
-    const pins = await Pin.find(req.query);
     const currentUserId = req.user?.id || req.user?._id;
+    const isAdmin = req.user?.role === 'admin';
+    const query = { ...req.query };
 
-    const enrichedPins = pins.map((pin) => {
-      const pinObj = pin.toObject ? pin.toObject() : { ...pin };
-      const isLiked = currentUserId && Array.isArray(pinObj.liked_by)
-        ? pinObj.liked_by.some((uid) => String(uid) === String(currentUserId))
-        : Boolean(pinObj.is_liked);
+    // Privacy guard: guests and non-owner users can only see public pins in general feeds
+    if (!isAdmin) {
+      if (!currentUserId) {
+        // Unauthenticated guest: strictly public pins
+        query.privacy = 'public';
+      } else if (!query.userId && !query.user_id) {
+        // Authenticated user browsing main feed: only public pins or user's own
+        query.viewerId = currentUserId;
+      } else if (String(query.userId || query.user_id) !== String(currentUserId)) {
+        // Viewing someone else's profile: only public pins
+        query.privacy = 'public';
+      }
+    }
 
-      return {
-        ...pinObj,
-        is_liked: isLiked,
-      };
-    });
+    const pins = await Pin.find(query);
+
+    const enrichedPins = pins.map((pin) => enrichPinObject(pin, currentUserId));
 
     res.json({
       success: true,
@@ -48,21 +96,33 @@ export const getPinById = async (req, res, next) => {
       });
     }
 
-    // Increment views count
-    const views = (pin.views_count || 0) + 1;
-    await Pin.findByIdAndUpdate(pin.id || pin._id, { views_count: views });
+    const currentUserId = req.user?.id || req.user?._id;
+    const isAdmin = req.user?.role === 'admin';
+
+    // Privacy guard: if pin is private, only owner or admin can view it
+    if (pin.is_private) {
+      const isOwner = currentUserId && String(pin.user_id) === String(currentUserId);
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'This pin is private',
+        });
+      }
+    }
+
+    // Atomic increment of views count
+    const views = await Pin.incrementViews(pin.id || pin._id);
 
     const pinObj = pin.toObject ? pin.toObject() : { ...pin };
     pinObj.views_count = views;
 
-    const currentUserId = req.user?.id || req.user?._id;
     if (currentUserId && Array.isArray(pinObj.liked_by)) {
       pinObj.is_liked = pinObj.liked_by.some((uid) => String(uid) === String(currentUserId));
     }
 
     res.json({
       success: true,
-      data: pinObj,
+      data: enrichPinObject(pinObj, currentUserId),
     });
   } catch (error) {
     next(error);
@@ -197,7 +257,7 @@ export const createPin = async (req, res, next) => {
 
     res.status(201).json({
       success: true,
-      data: pin,
+      data: enrichPinObject(pin, currentUserId),
     });
   } catch (error) {
     next(error);
@@ -235,7 +295,7 @@ export const updatePin = async (req, res, next) => {
     }
 
     // Whitelist only editable fields to prevent mass assignment of user_id, likes_count, rating_avg, etc.
-    const { title, description, image_url, destination_url, board_id, category_id, tags, is_private } = req.body;
+    const { title, description, image_url, destination_url, board_id, category_id, tags, is_private, is_hidden } = req.body;
     const updates = {};
 
     if (title !== undefined) {
@@ -268,10 +328,22 @@ export const updatePin = async (req, res, next) => {
 
     if (board_id !== undefined) {
       updates.board_id = board_id ? Number(board_id) : null;
+      if (updates.board_id) {
+        const b = await Board.findById(updates.board_id);
+        updates.board_name = b ? b.name : '';
+      } else {
+        updates.board_name = '';
+      }
     }
 
     if (category_id !== undefined) {
       updates.category_id = category_id ? Number(category_id) : null;
+      if (updates.category_id) {
+        const c = await Category.findById(updates.category_id);
+        updates.category = c ? { id: c.id || c._id, name: c.name, slug: c.slug } : null;
+      } else {
+        updates.category = null;
+      }
     }
 
     if (tags !== undefined && Array.isArray(tags)) {
@@ -282,11 +354,15 @@ export const updatePin = async (req, res, next) => {
       updates.is_private = Boolean(is_private);
     }
 
+    if (is_hidden !== undefined && isAdmin) {
+      updates.is_hidden = Boolean(is_hidden);
+    }
+
     const updated = await Pin.findByIdAndUpdate(req.params.id, updates);
 
     res.json({
       success: true,
-      data: updated,
+      data: enrichPinObject(updated, currentUserId),
     });
   } catch (error) {
     next(error);
@@ -372,43 +448,23 @@ export const toggleLike = async (req, res, next) => {
       });
     }
 
-    const pin = await Pin.findById(req.params.id);
-    if (!pin) {
+    const userId = req.user.id || req.user._id;
+    const updatedPin = await Pin.toggleLikePin(req.params.id, userId);
+
+    if (!updatedPin) {
       return res.status(404).json({
         success: false,
         message: 'Pin not found',
       });
     }
 
-    const userId = req.user.id || req.user._id;
-    let likedBy = Array.isArray(pin.liked_by) ? [...pin.liked_by] : [];
-    let likesCount = pin.likes_count || 0;
-    const isAlreadyLiked = likedBy.some((uid) => String(uid) === String(userId));
-
-    if (isAlreadyLiked) {
-      likedBy = likedBy.filter((uid) => String(uid) !== String(userId));
-      likesCount = Math.max(0, likesCount - 1);
-    } else {
-      likedBy.push(userId);
-      likesCount += 1;
-    }
-
-    const updated = await Pin.findByIdAndUpdate(
-      req.params.id,
-      {
-        liked_by: likedBy,
-        likes_count: likesCount,
-      },
-      { new: true }
-    );
-
     res.json({
       success: true,
-      data: {
-        ...updated,
-        is_liked: !isAlreadyLiked,
-        likes_count: likesCount,
-      },
+      data: enrichPinObject({
+        ...updatedPin,
+        is_liked: updatedPin.is_liked,
+        likes_count: updatedPin.likes_count,
+      }, userId),
     });
   } catch (error) {
     next(error);
@@ -475,7 +531,7 @@ export const ratePin = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: updated,
+      data: enrichPinObject(updated, userId),
     });
   } catch (error) {
     next(error);
@@ -596,7 +652,7 @@ export const updateComment = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: updated,
+      data: enrichPinObject(updated, userId),
     });
   } catch (error) {
     next(error);

@@ -125,7 +125,7 @@ const initPostgresTables = async (client) => {
 
     CREATE TABLE IF NOT EXISTS boards (
       id SERIAL PRIMARY KEY,
-      user_id INT,
+      user_id INT REFERENCES users(id) ON DELETE CASCADE,
       name VARCHAR(150) NOT NULL,
       description TEXT,
       cover_image_url TEXT,
@@ -142,11 +142,11 @@ const initPostgresTables = async (client) => {
       description TEXT,
       image_url TEXT NOT NULL,
       destination_url TEXT,
-      user_id INT NOT NULL,
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       user_data JSONB,
-      board_id INT,
+      board_id INT REFERENCES boards(id) ON DELETE SET NULL,
       board_name VARCHAR(150),
-      category_id INT,
+      category_id INT REFERENCES categories(id) ON DELETE SET NULL,
       category_data JSONB,
       tags JSONB DEFAULT '[]'::jsonb,
       type VARCHAR(50) DEFAULT 'image',
@@ -165,8 +165,8 @@ const initPostgresTables = async (client) => {
 
     CREATE TABLE IF NOT EXISTS comments (
       id SERIAL PRIMARY KEY,
-      pin_id INT NOT NULL,
-      user_id INT NOT NULL,
+      pin_id INT NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
+      user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       user_data JSONB,
       content TEXT NOT NULL,
       rating INT,
@@ -175,11 +175,11 @@ const initPostgresTables = async (client) => {
 
     CREATE TABLE IF NOT EXISTS reports (
       id SERIAL PRIMARY KEY,
-      pin_id INT NOT NULL,
+      pin_id INT NOT NULL REFERENCES pins(id) ON DELETE CASCADE,
       pin_title VARCHAR(255),
       pin_image TEXT,
       pin_author VARCHAR(150),
-      reporter_id INT NOT NULL,
+      reporter_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
       reporter_username VARCHAR(100),
       reporter_email VARCHAR(255),
       reason VARCHAR(255) NOT NULL,

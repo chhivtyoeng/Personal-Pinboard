@@ -136,7 +136,7 @@ export default function Profile() {
   }, [tabParam, navigate]);
 
   const { user: currentUser, setUser, logout } = useAuth();
-  const targetId = id ? Number(id) : currentUser?.id || 2;
+  const targetId = id ? Number(id) : currentUser?.id || null;
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const handleConfirmLogout = () => {
@@ -155,18 +155,13 @@ export default function Profile() {
   const [selectedPin, setSelectedPin] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm, setEditForm] = useState({
-    first_name: 'Mathew',
-    last_name: 'Anderson',
-    full_name: 'Mathew Anderson',
-    email: 'mathew.anderson@gmail.com',
-    phone: '(347) 528-1947',
-    position: 'Team Leader',
-    location: 'United States',
-    province: 'San Diego, California, United States',
-    pin_code: '92101',
-    zip: '30303',
-    federal_tax_no: 'GA45273910',
+    first_name: '',
+    last_name: '',
+    full_name: '',
+    email: '',
     bio: '',
+    location: '',
+    website: '',
     avatar_url: '',
   });
   const [saving, setSaving] = useState(false);
@@ -193,6 +188,11 @@ export default function Profile() {
 
   useEffect(() => {
     async function loadUserProfile() {
+      if (!targetId) {
+        setLoading(false);
+        setProfile(null);
+        return;
+      }
       setLoading(true);
       try {
         const data = await userService.getProfile(targetId);
@@ -203,24 +203,19 @@ export default function Profile() {
         setProfile(data);
         setSavedPins(allPins.filter((p) => p.is_liked));
 
-        const fullName = data.full_name || data.username || 'Sarah Jenkins';
+        const fullName = data.full_name || data.username || '';
         const parts = fullName.trim().split(' ');
-        const fName = data.first_name || parts[0] || 'Sarah';
-        const lName = data.last_name || parts.slice(1).join(' ') || (parts.length === 1 ? 'Jenkins' : '');
+        const fName = data.first_name || parts[0] || '';
+        const lName = data.last_name || parts.slice(1).join(' ') || '';
 
         setEditForm({
           first_name: fName,
           last_name: lName,
           full_name: fullName,
-          email: data.email || 'sarah.jenkins@pinboard.dev',
-          phone: data.phone || '(347) 528-1947',
-          position: data.position || (data.role === 'admin' ? 'Team Leader / Admin' : 'Team Leader'),
-          location: data.location || 'United States',
-          province: data.province || 'San Diego, California, United States',
-          pin_code: data.pin_code || '92101',
-          zip: data.zip || '30303',
-          federal_tax_no: data.federal_tax_no || 'GA45273910',
+          email: data.email || '',
           bio: data.bio || '',
+          location: data.location || '',
+          website: data.website || '',
           avatar_url: data.avatar_url || '',
         });
       } catch (err) {
@@ -757,117 +752,47 @@ export default function Profile() {
                   </div>
                 </div>
 
-                {/* Email & Phone */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Email
-                    </label>
-                    <input
-                      type="email"
-                      value={editForm.email}
-                      onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                      required
-                      placeholder="e.g. name@gmail.com"
-                      className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Phone
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.phone}
-                      onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
-                      placeholder="e.g. (347) 528-1947"
-                      className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Position / Title */}
+                {/* Email */}
                 <div>
                   <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Position / Role
+                    Email
                   </label>
                   <input
-                    type="text"
-                    value={editForm.position}
-                    onChange={(e) => setEditForm({ ...editForm, position: e.target.value })}
-                    placeholder="e.g. Team Leader"
+                    type="email"
+                    value={editForm.email}
+                    onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                    required
+                    placeholder="e.g. name@gmail.com"
                     className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                   />
                 </div>
 
-                {/* Location & Province / State */}
+                {/* Location & Website */}
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Location / Country
+                      Location / City
                     </label>
                     <input
                       type="text"
                       value={editForm.location}
                       onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
-                      placeholder="e.g. United States"
+                      placeholder="e.g. New York, USA"
                       className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                   </div>
                   <div>
                     <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      Province / State
+                      Website / Link
                     </label>
                     <input
                       type="text"
-                      value={editForm.province}
-                      onChange={(e) => setEditForm({ ...editForm, province: e.target.value })}
-                      placeholder="e.g. San Diego, California"
+                      value={editForm.website}
+                      onChange={(e) => setEditForm({ ...editForm, website: e.target.value })}
+                      placeholder="e.g. https://myportfolio.dev"
                       className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
                     />
                   </div>
-                </div>
-
-                {/* PIN Code & ZIP */}
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      PIN Code
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.pin_code}
-                      onChange={(e) => setEditForm({ ...editForm, pin_code: e.target.value })}
-                      placeholder="e.g. 92101"
-                      className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                      ZIP Code
-                    </label>
-                    <input
-                      type="text"
-                      value={editForm.zip}
-                      onChange={(e) => setEditForm({ ...editForm, zip: e.target.value })}
-                      placeholder="e.g. 30303"
-                      className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                    />
-                  </div>
-                </div>
-
-                {/* Federal Tax No. */}
-                <div>
-                  <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                    Federal Tax No. / Account ID
-                  </label>
-                  <input
-                    type="text"
-                    value={editForm.federal_tax_no}
-                    onChange={(e) => setEditForm({ ...editForm, federal_tax_no: e.target.value })}
-                    placeholder="e.g. GA45273910"
-                    className="w-full h-10 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-500"
-                  />
                 </div>
 
                 {/* Bio */}

@@ -36,10 +36,12 @@ export const boardService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.addBoard(data);
+    throw new Error('Failed to create board');
   },
 
   async updateBoard(id, data) {
@@ -50,21 +52,25 @@ export const boardService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.updateBoard(id, data);
+    throw new Error('Failed to update board');
   },
 
   async deleteBoard(id) {
     try {
       await api.delete(`/boards/${id}`);
+      appStore.deleteBoard(id);
+      return { success: true };
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    appStore.deleteBoard(id);
-    return { success: true };
   },
 
   async savePinToBoard(boardId, pinId) {
@@ -75,19 +81,24 @@ export const boardService = {
         return response.data.data;
       }
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.savePinToBoard(boardId, pinId);
+    throw new Error('Failed to save pin to board');
   },
 
   async removePinFromBoard(boardId, pinId) {
     try {
       await api.delete(`/boards/${boardId}/pins/${pinId}`);
+      appStore.removePinFromBoard(boardId, pinId);
+      return { success: true };
     } catch (error) {
-      // Graceful fallback to appStore
+      if (error?.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+      throw error;
     }
-
-    return appStore.removePinFromBoard(boardId, pinId);
   },
 };

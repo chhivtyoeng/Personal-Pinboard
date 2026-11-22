@@ -65,7 +65,47 @@ export const uploadAvatarImage = multer({
   fileFilter: imageFilter,
 });
 
+export const validateImageMagicBytes = (req, res, next) => {
+  if (!req.file) return next();
+  try {
+    const filePath = req.file.path;
+    const buffer = Buffer.alloc(12);
+    const fd = fs.openSync(filePath, 'r');
+    fs.readSync(fd, buffer, 0, 12, 0);
+    fs.closeSync(fd);
+
+    const isJpeg = buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+    const isPng = buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47;
+    const isGif = buffer[0] === 0x47 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x38;
+    const isWebp =
+      buffer.subarray(0, 4).toString('ascii') === 'RIFF' &&
+      buffer.subarray(8, 12).toString('ascii') === 'WEBP';
+
+    if (!isJpeg && !isPng && !isGif && !isWebp) {
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid image format. Real JPEG, PNG, WEBP, or GIF signature required.',
+      });
+    }
+    next();
+  } catch (err) {
+    if (req.file?.path && fs.existsSync(req.file.path)) {
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {}
+    }
+    return res.status(400).json({
+      success: false,
+      message: 'Failed to verify image signature.',
+    });
+  }
+};
+
 export default {
   uploadPinImage,
   uploadAvatarImage,
+  validateImageMagicBytes,
 };

@@ -136,12 +136,38 @@ export const User = {
   },
 
   async findByIdAndUpdate(id, updates = {}) {
-    if (isPostgresConnected && pool) {
-      const keys = Object.keys(updates);
-      if (keys.length === 0) return await this.findById(id);
+    const ALLOWED_COLUMNS = new Set([
+      'username',
+      'email',
+      'password',
+      'full_name',
+      'avatar_url',
+      'bio',
+      'role',
+      'status',
+      'pins_count',
+      'boards_count',
+      'auth_provider',
+      'reset_password_token',
+      'reset_password_expires',
+      'otp_code_hash',
+      'otp_expires',
+      'last_login',
+    ]);
 
+    const sanitizedUpdates = {};
+    for (const [key, val] of Object.entries(updates)) {
+      if (ALLOWED_COLUMNS.has(key)) {
+        sanitizedUpdates[key] = val;
+      }
+    }
+
+    const keys = Object.keys(sanitizedUpdates);
+    if (keys.length === 0) return await this.findById(id);
+
+    if (isPostgresConnected && pool) {
       const setClauses = keys.map((key, i) => `${key} = $${i + 1}`).join(', ');
-      const params = [...Object.values(updates), Number(id) || id];
+      const params = [...Object.values(sanitizedUpdates), Number(id) || id];
 
       const sql = `UPDATE users SET ${setClauses} WHERE id = $${keys.length + 1} RETURNING *`;
       const res = await pool.query(sql, params);
@@ -154,7 +180,7 @@ export const User = {
 
     db.users[index] = {
       ...db.users[index],
-      ...updates,
+      ...sanitizedUpdates,
       updated_at: new Date().toISOString(),
     };
     saveLocalDb();

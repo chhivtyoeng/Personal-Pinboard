@@ -172,32 +172,9 @@ export const authService = {
       if (error?.response?.data?.message) {
         throw new Error(error.response.data.message);
       }
+      throw error;
     }
-
-    const email = (typeof profile === 'object' ? profile.email : profile || '').toLowerCase().trim();
-    const name = (typeof profile === 'object' ? profile.name : '') || (email ? email.split('@')[0] : 'Google User');
-    const avatarUrl = (typeof profile === 'object' ? profile.avatar_url : null) || null;
-    const username = email ? email.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_') : 'google_user';
-
-    const storedUsers = getStoredUsers();
-    const existing = storedUsers.find((u) => u.email?.toLowerCase() === email);
-
-    const user = {
-      id: existing?.id || Date.now(),
-      username: existing?.username || username,
-      email,
-      full_name: existing?.full_name || name,
-      role: existing?.role || 'user',
-      avatar_url: avatarUrl || existing?.avatar_url,
-      auth_provider: 'google',
-      created_at: existing?.created_at || new Date().toISOString(),
-    };
-
-    saveStoredUser(user);
-    return {
-      user,
-      token: 'jwt-google-' + user.id,
-    };
+    throw new Error('Google authentication failed');
   },
 
   // Email OTP Login / Registration
@@ -212,31 +189,9 @@ export const authService = {
       if (error?.response?.data?.message) {
         throw new Error(error.response.data.message);
       }
+      throw error;
     }
-
-    const cleanEmail = (email || '').toLowerCase().trim();
-    const username = cleanEmail.split('@')[0].replace(/[^a-zA-Z0-9_]/g, '_');
-    const name = fullName?.trim() || username;
-
-    const storedUsers = getStoredUsers();
-    const existing = storedUsers.find((u) => u.email?.toLowerCase() === cleanEmail);
-
-    const user = {
-      id: existing?.id || Date.now(),
-      username: existing?.username || username,
-      email: cleanEmail,
-      full_name: existing?.full_name || name,
-      role: existing?.role || 'user',
-      avatar_url: existing?.avatar_url || null,
-      auth_provider: 'email_otp',
-      created_at: existing?.created_at || new Date().toISOString(),
-    };
-
-    saveStoredUser(user);
-    return {
-      user,
-      token: 'jwt-otp-' + user.id,
-    };
+    throw new Error('OTP authentication failed');
   },
 
   // Forgot password

@@ -55,26 +55,80 @@ export default function AppRoutes() {
       <Route path="/terms" element={<TermsPage />} />
       <Route path="/privacy" element={<PrivacyPage />} />
 
-      {/* Main Application with App Layout - Requires Login */}
-      <Route
-        element={
-          <ProtectedRoute>
-            <Layout />
-          </ProtectedRoute>
-        }
-      >
+      {/* Main Application with App Layout */}
+      <Route element={<Layout />}>
+        {/* Public Discovery & Exploration */}
         <Route path="/pins" element={<Pins />} />
-        <Route path="/pins/create" element={<CreatePin />} />
+        <Route
+          path="/pins/create"
+          element={
+            <ProtectedRoute>
+              <CreatePin />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/pins/new" element={<Navigate to="/pins/create" replace />} />
+        <Route
+          path="/pins/edit/:id"
+          element={
+            <ProtectedRoute>
+              <EditPin />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/pins/:id/edit"
+          element={
+            <ProtectedRoute>
+              <EditPin />
+            </ProtectedRoute>
+          }
+        />
         <Route path="/pins/:id" element={<PinDetails />} />
-        <Route path="/pins/edit/:id" element={<EditPin />} />
-        <Route path="/pins/:id/edit" element={<EditPin />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/favorites" element={<Favorites />} />
         <Route path="/categories" element={<Categories />} />
-        <Route path="/boards" element={<Boards />} />
-        <Route path="/profile" element={<Profile />} />
         <Route path="/profile/:id" element={<Profile />} />
-        <Route path="/settings" element={<Settings />} />
+
+        {/* Protected User Actions & Personal Spaces */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/favorites"
+          element={
+            <ProtectedRoute>
+              <Favorites />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/boards"
+          element={
+            <ProtectedRoute>
+              <Boards />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/profile"
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/settings"
+          element={
+            <ProtectedRoute>
+              <Settings />
+            </ProtectedRoute>
+          }
+        />
 
         {/* Protected Admin Routes */}
         <Route

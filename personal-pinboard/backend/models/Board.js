@@ -66,7 +66,7 @@ export const Board = {
         RETURNING *
       `;
       const params = [
-        Number(data.user_id) || 2,
+        data.user_id ? Number(data.user_id) : null,
         data.name,
         data.description || '',
         data.cover_image_url || data.cover_image || '',
@@ -92,7 +92,7 @@ export const Board = {
       description: data.description || '',
       cover_image_url: data.cover_image_url || data.cover_image || '',
       preview_images: data.preview_images || [],
-      user_id: data.user_id,
+      user_id: data.user_id ? Number(data.user_id) : null,
       is_private: Boolean(data.is_private || data.is_secret),
       pins_count: 0,
       pin_ids: [],
@@ -105,15 +105,32 @@ export const Board = {
   },
 
   async findByIdAndUpdate(id, updates = {}) {
-    if (isPostgresConnected && pool) {
-      const keys = Object.keys(updates);
-      if (keys.length === 0) return await this.findById(id);
+    const ALLOWED_BOARD_COLUMNS = new Set([
+      'name',
+      'description',
+      'cover_image_url',
+      'preview_images',
+      'is_private',
+      'pins_count',
+      'pin_ids',
+    ]);
 
+    const sanitizedUpdates = {};
+    for (const [key, val] of Object.entries(updates)) {
+      if (ALLOWED_BOARD_COLUMNS.has(key)) {
+        sanitizedUpdates[key] = val;
+      }
+    }
+
+    const keys = Object.keys(sanitizedUpdates);
+    if (keys.length === 0) return await this.findById(id);
+
+    if (isPostgresConnected && pool) {
       const setClauses = [];
       const params = [];
       let idx = 1;
 
-      for (const [key, val] of Object.entries(updates)) {
+      for (const [key, val] of Object.entries(sanitizedUpdates)) {
         if (key === 'preview_images' || key === 'pin_ids') {
           setClauses.push(`${key} = $${idx++}`);
           params.push(JSON.stringify(val));
@@ -141,7 +158,7 @@ export const Board = {
 
     db.boards[index] = {
       ...db.boards[index],
-      ...updates,
+      ...sanitizedUpdates,
       updated_at: new Date().toISOString(),
     };
     saveLocalDb();

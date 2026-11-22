@@ -360,8 +360,70 @@ export const resetPassword = async (req, res, next) => {
 // @access  Public
 export const loginWithGoogle = async (req, res, next) => {
   try {
-    const { email, name, full_name, avatar_url, picture } = req.body;
-    const cleanEmail = (email || '').toLowerCase().trim();
+    const { credential, token, id_token, accessToken, access_token, email, name, full_name, avatar_url, picture } = req.body;
+
+    let verifiedEmail = null;
+    let verifiedName = full_name || name || '';
+    let verifiedPicture = avatar_url || picture || null;
+
+    const googleToken = credential || token || id_token;
+    const oauthAccessToken = accessToken || access_token;
+
+    if (googleToken) {
+      try {
+        const response = await fetch(`https://oauth2.googleapis.com/tokeninfo?id_token=${encodeURIComponent(googleToken)}`);
+        if (response.ok) {
+          const tokenData = await response.json();
+          verifiedEmail = tokenData.email;
+          if (tokenData.name) verifiedName = tokenData.name;
+          if (tokenData.picture) verifiedPicture = tokenData.picture;
+        } else {
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid Google ID token provided',
+          });
+        }
+      } catch (err) {
+        return res.status(401).json({
+          success: false,
+          message: 'Failed to verify Google token with Google identity servers',
+        });
+      }
+    } else if (oauthAccessToken) {
+      try {
+        const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+          headers: { Authorization: `Bearer ${oauthAccessToken}` },
+        });
+        if (response.ok) {
+          const userInfo = await response.json();
+          verifiedEmail = userInfo.email;
+          if (userInfo.name) verifiedName = userInfo.name;
+          if (userInfo.picture) verifiedPicture = userInfo.picture;
+        } else {
+          return res.status(401).json({
+            success: false,
+            message: 'Invalid Google access token provided',
+          });
+        }
+      } catch (err) {
+        return res.status(401).json({
+          success: false,
+          message: 'Failed to verify Google access token',
+        });
+      }
+    } else {
+      // In production, strictly reject unauthenticated calls without token
+      if (process.env.NODE_ENV === 'production') {
+        return res.status(400).json({
+          success: false,
+          message: 'Google authentication requires a verified token.',
+        });
+      }
+      // Dev mode fallback
+      verifiedEmail = (email || '').toLowerCase().trim();
+    }
+
+    const cleanEmail = (verifiedEmail || email || '').toLowerCase().trim();
 
     if (!cleanEmail || !isValidEmail(cleanEmail)) {
       return res.status(400).json({
@@ -404,21 +466,21 @@ export const loginWithGoogle = async (req, res, next) => {
         username,
         email: cleanEmail,
         password: randomPassword, // Securely hashed by User.create
-        full_name: full_name || name || username,
-        avatar_url: avatar_url || picture || null,
+        full_name: verifiedName || username,
+        avatar_url: verifiedPicture,
         auth_provider: 'google',
         role: 'user', // Enforce 'user' role
         status: 'active',
       });
     }
 
-    const token = generateToken(user);
+    const appToken = generateToken(user);
 
     res.json({
       success: true,
       data: {
         user: sanitizeUser(user),
-        token,
+        token: appToken,
       },
     });
   } catch (error) {
@@ -491,47 +553,44 @@ export const loginWithOtp = async (req, res, next) => {
       });
     }
 
-    let user = await User.findOne({ email: cleanEmail });
-
-    // Verify OTP code if code was provided, or check user record
-    if (inputCode) {
-      let isCodeValid = false;
-
-      // Check user record first
-      if (user && user.otp_code_hash && user.otp_expires) {
-        if (new Date(user.otp_expires).getTime() >= Date.now()) {
-          isCodeValid = await bcrypt.compare(inputCode, user.otp_code_hash);
-        }
-      }
-
-      // Check pending memory store
-      if (!isCodeValid && pendingOtps.has(cleanEmail)) {
-        const pending = pendingOtps.get(cleanEmail);
-        if (pending.expiresAt >= Date.now()) {
-          isCodeValid = await bcrypt.compare(inputCode, pending.codeHash);
-        }
-      }
-
-      if (!isCodeValid) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid or expired verification code. Please request a new code.',
-        });
-      }
-
-      // Clear used OTP
-      pendingOtps.delete(cleanEmail);
-      if (user) {
-        await User.findByIdAndUpdate(user.id || user._id, {
-          otp_code_hash: null,
-          otp_expires: null,
-        });
-      }
-    } else if (user && user.role === 'admin') {
-      // Admin accounts cannot login without entering OTP code
+    if (!inputCode) {
       return res.status(400).json({
         success: false,
         message: 'Verification code is required to complete login.',
+      });
+    }
+
+    let user = await User.findOne({ email: cleanEmail });
+    let isCodeValid = false;
+
+    // Check user record first
+    if (user && user.otp_code_hash && user.otp_expires) {
+      if (new Date(user.otp_expires).getTime() >= Date.now()) {
+        isCodeValid = await bcrypt.compare(inputCode, user.otp_code_hash);
+      }
+    }
+
+    // Check pending memory store
+    if (!isCodeValid && pendingOtps.has(cleanEmail)) {
+      const pending = pendingOtps.get(cleanEmail);
+      if (pending.expiresAt >= Date.now()) {
+        isCodeValid = await bcrypt.compare(inputCode, pending.codeHash);
+      }
+    }
+
+    if (!isCodeValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid or expired verification code. Please request a new code.',
+      });
+    }
+
+    // Clear used OTP
+    pendingOtps.delete(cleanEmail);
+    if (user) {
+      await User.findByIdAndUpdate(user.id || user._id, {
+        otp_code_hash: null,
+        otp_expires: null,
       });
     }
 
